@@ -31,4 +31,21 @@ const ring=E.fromSegments(segsOf([[0,1,8,1],[8,1,8,6],[8,6,0,6],[0,6,0,1],[4,0,4
 ok(!E.solve(JSON.parse(JSON.stringify(ring))).ok,"gezeichneter Rahmen mit X-Stummel: Widerspruch");
 const fr=E.fromSegments(segsOf([[0,0,8,0],[8,0,8,6],[8,6,0,6],[0,6,0,0]]),new Set(),new Set(["4,0,h"]),500);
 ok(fr.edges.some(e=>e.midFeed)&&fr.nodes.every(n=>n.type==="L"),"Rahmen mit Mitteneinspeiser: 4 L");
+// Widerspruch: Ursache ist das X, nicht ein L im Ring
+const rs=E.solve(JSON.parse(JSON.stringify(ring)));
+ok(rs.conflicts.length===1&&ring.nodes.find(n=>n.id===rs.conflicts[0].node).type==="X","Widerspruch wird am X-Verbinder markiert");
+// Flex-Verbinder und schräge Schienen
+const tr=E.fromSegments(segsOf([[0,0,4,0],[8,4,12,4]]),new Set(["0,0"]),new Set(),500,{diags:new Set(["4,0,8,4"])});
+const trs=E.solve(JSON.parse(JSON.stringify(tr)));
+ok(trs.ok&&trs.nodes.filter(n=>n.part==="flex").length===2&&trs.nodes.filter(n=>n.part==="flex").every(n=>n.angle===135),"Schräge zwischen zwei Waagrechten: 2 Flex-Verbinder à 135°");
+const dg=tr.edges.find(e=>e.units[0].split(",").length===4);
+ok(Math.abs(dg.axis-Math.round(Math.hypot(4,4)*500))<1&&dg.len===dg.axis-120,"Schräge: Achse = Diagonale, Schiene = Achse − 2 × 6 cm");
+const hs=trs.edges.filter(e=>!e.diag).map(e=>e.side);ok(hs[0]===hs[1],"Flex: Schutzleiter bleibt in Laufrichtung auf derselben Seite");
+const lf=E.solve(JSON.parse(JSON.stringify(E.fromSegments(segsOf([[0,0,6,0],[6,0,6,4]]),new Set(["0,0"]),new Set(),500,{flex:new Set(["6,0"])})))),
+      ll=E.solve(JSON.parse(JSON.stringify(E.fromSegments(segsOf([[0,0,6,0],[6,0,6,4]]),new Set(["0,0"]),new Set(),500))));
+ok(lf.nodes.some(n=>n.part==="flex"&&n.angle===90)&&lf.edges.map(e=>e.side).join()===ll.edges.map(e=>e.side).join(),"Flex an 90°-Ecke statt L, gleiche Schutzleiterlage");
+const dt=E.fromSegments(segsOf([[0,0,8,0]]),new Set(["0,0"]),new Set(),500,{diags:new Set(["4,0,7,3"])});
+ok(!E.solve(JSON.parse(JSON.stringify(dt))).ok,"Schräge an T-Knoten wird abgelehnt");
+const cx=E.fromSegments(segsOf([[2,0,2,4]]),new Set(),new Set(),500,{diags:new Set(["0,1,4,3"])});
+ok(cx.crossings.length===1,"Schräge über eine andere Schiene: Kreuzung erkannt");
 process.exit(fail?1:0);

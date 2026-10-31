@@ -478,3 +478,5 @@ figure.failed img{display:none}
 @media print{.edtools,#toolHint{display:none!important}}
 @media screen{body.planner .seg{display:inline-flex;flex-wrap:wrap}}
 @media (max-width:600px){body.planner .seg button{padding:8px 12px}.drawhead{flex-wrap:wrap;gap:8px}}
+.svgbox .cross{fill:none;stroke:#D7262E;stroke-width:3}
+#drawNote .lx{background:var(--karte);border:2.5px solid var(--ink);width:10px!important;height:10px!important;border-radius:50%!important;box-sizing:border-box}

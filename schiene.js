@@ -2,7 +2,7 @@
 (function(){
   const E=window.SchienenEngine, $=id=>document.getElementById(id);
   const st={shape:"straight",feed:"left",side:"S",view:"top",have:{},tool:"draw",
-    segs:new Set(),feeds:new Set(),mids:new Set(),undo:[]};
+    segs:new Set(),diags:new Set(),flex:new Set(),feeds:new Set(),mids:new Set(),undo:[]};
   const fmtM=mm=>(mm/1000).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2})+" m";
   const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const num=v=>parseFloat(String(v).replace(",","."));
@@ -22,7 +22,7 @@
   $("haveFeed").addEventListener("input",()=>{applyHave();render()});
   $("printBtn").onclick=()=>window.print();
   $("undo").onclick=()=>{const s=st.undo.pop();if(s){restore(s);render()}};
-  $("clearAll").onclick=()=>{snapshot();st.segs.clear();st.feeds.clear();st.mids.clear();render()};
+  $("clearAll").onclick=()=>{snapshot();st.segs.clear();st.diags.clear();st.flex.clear();st.feeds.clear();st.mids.clear();render()};
   $("bom").addEventListener("change",e=>{const k=e.target.dataset.have;if(k){st.have[k]=e.target.checked;render()}});
 
   function applyHave(){
@@ -30,8 +30,8 @@
     const dir=st.feed==="left"?"E":"W", right=E.RIGHT[dir];
     st.side=v==="rechts"?right:(right==="S"?"N":"S");
   }
-  const snapshot=()=>{st.undo.push({segs:[...st.segs],feeds:[...st.feeds],mids:[...st.mids]});if(st.undo.length>60)st.undo.shift()};
-  const restore=s=>{st.segs=new Set(s.segs);st.feeds=new Set(s.feeds);st.mids=new Set(s.mids)};
+  const snapshot=()=>{st.undo.push({segs:[...st.segs],diags:[...st.diags],flex:[...st.flex],feeds:[...st.feeds],mids:[...st.mids]});if(st.undo.length>60)st.undo.shift()};
+  const restore=s=>{st.segs=new Set(s.segs);st.diags=new Set(s.diags||[]);st.flex=new Set(s.flex||[]);st.feeds=new Set(s.feeds);st.mids=new Set(s.mids)};
 
   // ---------- Vorlagen (Maße in Metern, Linien als [x0,y0,x1,y1]) ----------
   const PRESETS={
@@ -45,6 +45,9 @@
     "Kreuz (X)":{lines:[[0,1.5,3,1.5],[1.5,0,1.5,3]],feeds:[[0,1.5]]},
     "H mit X statt Mittelsteg":{lines:[[0,0,0,3],[4,0,4,3],[0,1.5,4,1.5],[2,0,2,3]],feeds:[[0,0]]},
     "Katalogbeispiel EUTRAC":{lines:[[0,0,3,0],[0,0,0,2],[1.5,0,1.5,3],[0,2,3,2],[3,2,3,1]],feeds:[[3,0],[3,1],[1.5,3]]},
+    "Schräge mit zwei Flex-Verbindern":{lines:[[0,0,2,0],[2,0,4,2],[4,2,6,2]],feeds:[[0,0]]},
+    "Raute (vier Flex-Verbinder)":{lines:[[2,0,4,2],[4,2,2,4],[2,4,0,2],[0,2,2,0]],mids:[[1,1]]},
+    "Rahmen mit abgeschrägter Ecke":{lines:[[0,0,3,0],[3,0,4,1],[4,1,4,3],[4,3,0,3],[0,3,0,0]],mids:[[1.5,3]]},
     "Gegenbeispiel: Rahmen mit X-Stummel":{lines:[[0,0.5,4,0.5],[4,0.5,4,3],[4,3,0,3],[0,3,0,0.5],[2,0,2,1.5]],feeds:[[2,1.5]]}
   };
   const psel=$("preset");Object.keys(PRESETS).forEach(n=>{const o=document.createElement("option");o.textContent=n;psel.appendChild(o)});
@@ -54,31 +57,35 @@
     const all=[...p.lines.flat(),...(p.feeds||[]).flat(),...(p.mids||[]).flat()];
     const step=[1000,500,250,100].find(s=>all.every(v=>Math.abs(v*1000/s-Math.round(v*1000/s))<1e-6));
     $("gridStep").value=String(step);st.step=step;
-    st.segs=new Set();st.feeds=new Set();st.mids=new Set();
+    st.segs=new Set();st.diags=new Set();st.flex=new Set();st.feeds=new Set();st.mids=new Set();
     const c=v=>Math.round(v*1000/step);
     p.lines.forEach(([a,b,x,y])=>addLine(c(a),c(b),c(x),c(y)));
     (p.feeds||[]).forEach(([x,y])=>st.feeds.add(c(x)+","+c(y)));
-    (p.mids||[]).forEach(([x,y])=>st.mids.add(c(x)+","+c(y)+",h"));
+    (p.mids||[]).forEach(([x,y])=>{const h=`${c(x)},${c(y)},h`;if(st.segs.has(h))st.mids.add(h);else{const d=[...st.diags].find(d=>{const [a,b,e,f]=d.split(",").map(Number);return Math.abs((a+e)/2-c(x))<1e-6&&Math.abs((b+f)/2-c(y))<1e-6});if(d)st.mids.add(d)}});
+    (p.flex||[]).forEach(([x,y])=>st.flex.add(c(x)+","+c(y)));
     const mx=Math.max(...p.lines.flatMap(l=>[l[0],l[2]])),my=Math.max(...p.lines.flatMap(l=>[l[1],l[3]]));
     $("areaW").value=String(Math.max(num($("areaW").value)||0,Math.ceil(mx+1)));$("areaH").value=String(Math.max(num($("areaH").value)||0,Math.ceil(my+1)));
   }
   function addLine(x0,y0,x1,y1){
     if(y0===y1)for(let x=Math.min(x0,x1);x<Math.max(x0,x1);x++)st.segs.add(`${x},${y0},h`);
     else if(x0===x1)for(let y=Math.min(y0,y1);y<Math.max(y0,y1);y++)st.segs.add(`${x0},${y},v`);
+    else st.diags.add(x0<x1||(x0===x1&&y0<y1)?`${x0},${y0},${x1},${y1}`:`${x1},${y1},${x0},${y0}`);
   }
   // Rasterwechsel: Form maßstabsgetreu umrechnen, soweit sie auf das neue Raster passt
   function rescale(old,nw){
-    if(!st.segs.size){st.step=nw;return}
+    if(!st.segs.size&&!st.diags.size){st.step=nw;return}
     const f=old/nw, okInt=v=>Math.abs(v*f-Math.round(v*f))<1e-6;
-    const L=E.fromSegments(st.segs,st.feeds,st.mids,old);
+    const L=layoutNow(old);
     const pts=[...L.nodes.flatMap(n=>[n.x,n.y]),...[...st.mids].map(m=>+m.split(",")[m.endsWith("h")?0:1])];
     if(!pts.every(okInt)){$("gridStep").value=String(old);alert("Die Form passt nicht auf dieses Raster. Bitte ein feineres Raster wählen.");return}
     snapshot();const segs=new Set();
     for(const s of st.segs){const [x,y,o]=s.split(",");const X=Math.round(+x*f),Y=Math.round(+y*f);
       if(f>=1){for(let i=0;i<f;i++)segs.add(o==="h"?`${X+i},${Y},h`:`${X},${Y+i},v`)} else if(okInt(o==="h"?+x:+y))segs.add(o==="h"?`${X},${Y},h`:`${X},${Y},v`)}
     st.segs=segs;
+    st.diags=new Set([...st.diags].map(d=>d.split(",").map(v=>Math.round(+v*f)).join(",")));
+    st.flex=new Set([...st.flex].map(p=>p.split(",").map(v=>Math.round(+v*f)).join(",")));
     st.feeds=new Set([...st.feeds].map(p=>{const [x,y]=p.split(",");return Math.round(+x*f)+","+Math.round(+y*f)}));
-    st.mids=new Set([...st.mids].map(p=>{const [x,y,o]=p.split(",");return Math.round(+x*f)+","+Math.round(+y*f)+","+o}).filter(m=>segs.has(m)));
+    st.mids=new Set([...st.mids].map(p=>{const [x,y,o]=p.split(",");return Math.round(+x*f)+","+Math.round(+y*f)+","+o}).filter(m=>m.split(",").length===4||segs.has(m)));
     st.step=nw;
   }
 
@@ -102,14 +109,18 @@
     }else{
       st.step=+$("gridStep").value;
       $("toolHint").textContent={draw:"Auf einen Rasterpunkt drücken und waagrecht oder senkrecht ziehen. Wo Schienen sich treffen, entstehen automatisch L-, T- oder X-Verbinder.",
+        diag:"Von einem Rasterpunkt zu einem beliebigen anderen ziehen. Schräge Schienen werden über Flex-Verbinder (30° bis 330°) angeschlossen; die setzt der Planer automatisch.",
+        flex:"Auf eine rechtwinklige Ecke tippen: Flex-Verbinder statt L-Verbinder (und zurück).",
         feed:"Auf ein freies Schienenende tippen: Einspeiser an/aus. Auf eine Schiene tippen: Mitteneinspeiser an/aus.",
         erase:"Auf eine Schiene tippen, um sie bis zum nächsten Verbinder zu löschen."}[st.tool];
-      if(!st.segs.size){drawGrid(null,null);clearOut();err.innerHTML=`<p class="fine">Noch keine Schiene gezeichnet. Ziehe eine Linie auf dem Raster oder wähle eine Vorlage.</p>`;return}
-      layout=E.fromSegments(st.segs,st.feeds,st.mids,st.step);
+      if(!st.segs.size&&!st.diags.size){drawGrid(null,null);clearOut();err.innerHTML=`<p class="fine">Noch keine Schiene gezeichnet. Ziehe eine Linie auf dem Raster oder wähle eine Vorlage.</p>`;return}
+      layout=layoutNow(st.step);
+      if(layout.crossings.length){drawGrid(layout,null);clearOut();err.innerHTML=`<p class="err">Eine schräge Schiene kreuzt eine andere Schiene ohne Verbinder (rot markiert). Schienen dürfen sich nur an Verbindern treffen; schräg geht das nur an freien Enden über Flex-Verbinder.</p>`;return}
       const short=layout.edges.filter(e=>e.len<100);
       solved=E.solve(JSON.parse(JSON.stringify(layout)));
       if(!solved.ok){drawGrid(layout,solved);clearOut();err.innerHTML=solved.errors.map(e=>`<p class="err">${esc(e)}</p>`).join("");return}
       solved.edges.forEach((e,i)=>{e.axis=layout.edges[i].axis;e.units=layout.edges[i].units});
+      solved.hasFlex=solved.nodes.some(n=>n.type==="flex");
       outputs(layout,solved,opts,short);drawGrid(layout,solved);edgeList(solved);
     }
   }
@@ -126,6 +137,7 @@
     const miss=b.items.filter(it=>!st.have[it.key]);
     $("missing").innerHTML=Object.keys(st.have).some(k=>st.have[k])?(miss.length?`<b>Es fehlen noch:</b> ${miss.map(it=>`${it.qty}× ${esc(it.name)}`).join(", ")}`:`<b>Vollständig.</b> Du hast alle Teile beisammen.`):"";
     const ded=st.shape==="draw"?[`Zuschnitt: Gezeichnet wird die Achse. Die Schienenlänge ergibt sich abzüglich Platzbedarf der Verbinder laut Katalog (L, T, X je 6 cm ab Mitte, Einspeiser 7,2 cm, Endkappe 0,65 cm).`]:[];
+    if(solved.hasFlex)ded.push("Flex-Verbinder: Baulänge laut Katalog 80 bis 120 mm je nach Winkel; gerechnet ist mit 6 cm je Seite. Bei spitzen Winkeln wird er kürzer – schräge Schienen vor dem Zuschnitt am Bau nachmessen.");
     $("notes").innerHTML=[...ded,...b.notes,"Anschluss: 3 Stromkreise, je Stromkreis bis 3.600 W; am Drehstromnetz Einzelabsicherung 3 × 16 A, Zuleitung 5 × 1,5 mm² bis 5 × 2,5 mm². Anschluss nur durch eine Elektrofachkraft."].map(n=>`<li>${esc(n)}</li>`).join("");
   }
 
@@ -174,39 +186,44 @@
     if(cw>=10){for(let i=0;i<=cols;i++)for(let j=0;j<=rows;j++)s+=`<circle cx="${PX(i)}" cy="${PY(j)}" r="1.2" class="gd"/>`}
     // Schienen (Ketten zwischen Knoten), Schutzleiter
     if(layout){
-      const sideByUnit={}; if(solved&&solved.edges)solved.edges.forEach(e=>e.units&&e.units.forEach(u=>sideByUnit[u]=e.side));
-      for(const u of st.segs){const [x,y,o]=u.split(",").map((v,i)=>i<2?+v:v);
-        const x1=PX(x),y1=PY(y),x2=o==="h"?PX(x+1):PX(x),y2=o==="h"?PY(y):PY(y+1);
+      const sideByUnit={}; if(solved&&solved.edges)solved.edges.forEach(e=>e.units&&e.units.forEach(u=>sideByUnit[u]=e.sl));
+      for(const u of [...st.segs,...st.diags]){const q=u.split(",");let x1,y1,x2,y2;
+        if(q.length===4){x1=PX(+q[0]);y1=PY(+q[1]);x2=PX(+q[2]);y2=PY(+q[3])}
+        else{const x=+q[0],y=+q[1],o=q[2];x1=PX(x);y1=PY(y);x2=o==="h"?PX(x+1):PX(x);y2=o==="h"?PY(y):PY(y+1)}
         s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="edrail"/>`;
-        const sd=sideByUnit[u];if(sd){let dx=0,dy=0;if(sd==="N")dy=-5;if(sd==="S")dy=5;if(sd==="E")dx=flip?-5:5;if(sd==="W")dx=flip?5:-5;
+        const sd=sideByUnit[u];if(sd){const dx=sd[0]*5*(flip?-1:1),dy=sd[1]*5;
           s+=`<line x1="${x1+dx}" y1="${y1+dy}" x2="${x2+dx}" y2="${y2+dy}" class="sl2"/>`}
-        if(st.mids.has(u))s+=`<rect x="${(x1+x2)/2-9}" y="${(y1+y2)/2-9}" width="18" height="18" class="feed"/><text x="${(x1+x2)/2}" y="${(y1+y2)/2-14}" text-anchor="middle" class="tLabS">Mitteneinspeiser</text>`;
+        if(st.mids.has(u))s+=`<rect x="${(x1+x2)/2-9}" y="${(y1+y2)/2-9}" width="18" height="18" class="feed"/><text x="${(x1+x2)/2}" y="${(y1+y2)/2+24}" text-anchor="middle" class="tLabS">Mitteneinspeiser</text>`;
       }
       // Längen je Schiene
       layout.edges.forEach(e=>{const a=layout.nodes.find(n=>n.id===e.a),b=layout.nodes.find(n=>n.id===e.b);
-        const mx=(PX(a.x)+PX(b.x))/2,my=(PY(a.y)+PY(b.y))/2, horiz=a.y===b.y;
-        s+=`<text x="${mx+(horiz?0:12)}" y="${my+(horiz?-12:4)}" text-anchor="${horiz?"middle":"start"}" class="tLen">${fmtM(e.axis)}</text>`});
+        const mx=(PX(a.x)+PX(b.x))/2,my=(PY(a.y)+PY(b.y))/2, horiz=a.y===b.y, vert=a.x===b.x;
+        if(horiz||vert)s+=`<text x="${mx+(horiz?0:12)}" y="${my+(horiz?-12:4)}" text-anchor="${horiz?"middle":"start"}" class="tLen">${fmtM(e.axis)}</text>`;
+        else{const dx=PX(b.x)-PX(a.x),dy=PY(b.y)-PY(a.y),l=Math.hypot(dx,dy),nx=-dy/l,ny=dx/l,sg=ny>0?-1:1;
+          const ox=nx*12*sg,oy=ny*12*sg;s+=`<text x="${mx+ox}" y="${my+oy+4}" text-anchor="${ox>2?"start":ox<-2?"end":"middle"}" class="tLen">${fmtM(e.axis)}</text>`}});
+      (layout.crossings||[]).forEach(c=>{const [x,y]=c.split(",").map(Number);s+=`<circle cx="${PX(x)}" cy="${PY(y)}" r="11" class="cross"/>`});
       // Knoten
       const conflictIds=new Set((solved&&solved.conflicts||[]).map(c=>c.node));
       const sn=solved&&solved.nodes?Object.fromEntries(solved.nodes.map(n=>[n.id,n])):{};
       layout.nodes.forEach(n=>{const x=PX(n.x),y=PY(n.y),v=sn[n.id],bad=conflictIds.has(n.id);
-        const lab={feed:"Einspeiser",end:"",L:"L",T:"T",X:"X"}[n.type]+(v&&v.variant&&n.type!=="end"?" "+short(v.variant,n.type):"");
+        const lab={feed:"Einspeiser",end:"",L:"L",T:"T",X:"X",flex:"Flex"}[n.type]+(v&&v.variant&&n.type!=="end"?" "+short(v.variant,n.type):"");
         if(n.type==="end")s+=`<circle cx="${x}" cy="${y}" r="5" class="ednode end${bad?" bad":""}"/>`;
         else if(n.type==="feed")s+=`<rect x="${x-9}" y="${y-9}" width="18" height="18" class="feed${bad?" bad":""}"/>`;
+        else if(n.type==="flex")s+=`<circle cx="${x}" cy="${y}" r="8.5" class="ednode${bad?" bad":""}"/>`;
         else s+=`<rect x="${x-8}" y="${y-8}" width="16" height="16" class="ednode${bad?" bad":""}"/>`;
         if(lab.trim())s+=`<text x="${x+12}" y="${y-10}" class="tNode${bad?" bad":""}">${esc(lab)}</text>`;});
     }
     s+=`<line id="edPrev" x1="0" y1="0" x2="0" y2="0" class="edprev" visibility="hidden"/></svg>`;
     $("svgBox").innerHTML=s;
-    $("drawNote").innerHTML=`<span class="leg"><i class="lr"></i>Schiene</span><span class="leg"><i class="ls"></i>Schutzleiter</span><span class="leg"><i class="lf"></i>Einspeiser</span><span class="leg"><i class="le"></i>Endkappe</span>`+(st.view==="below"?" Ansicht von unten (gespiegelt); die Teilenamen bleiben die des Katalogs.":"");
+    $("drawNote").innerHTML=`<span class="leg"><i class="lr"></i>Schiene</span><span class="leg"><i class="ls"></i>Schutzleiter</span><span class="leg"><i class="lf"></i>Einspeiser</span><span class="leg"><i class="le"></i>Endkappe</span><span class="leg"><i class="lx"></i>Flex-Verbinder</span>`+(st.view==="below"?" Ansicht von unten (gespiegelt); die Teilenamen bleiben die des Katalogs.":"");
     bindEditor();
   }
-  function short(v,t){if(t==="feed")return "SL "+v;if(t==="L")return v;return v.replace("innen, ","innen ").replace("außen, ","außen ").replace("rechts","re").replace("links","li")}
+  function short(v,t){if(t==="feed")return "SL "+v;if(t==="L"||t==="flex")return v;return v.replace("innen, ","innen ").replace("außen, ","außen ").replace("rechts","re").replace("links","li")}
 
   function edgeList(solved){
     $("edgeList").innerHTML=`<details><summary>Schienen und Verbinder im Einzelnen (${solved.edges.length} Schienen)</summary><ul>${solved.edges.map(e=>{
       const a=solved.nodes.find(n=>n.id===e.a),b=solved.nodes.find(n=>n.id===e.b);
-      return `<li><b>${e.a} → ${e.b}</b>: Achse ${fmtM(e.axis)}, Schiene ${fmtM(e.len)}${e.pieces.length>1?` (aus ${e.pieces.map(p=>p/1000+" m").join(" + ")})`:e.cutTo?` (aus ${e.pieces[0]/1000} m)`:""}, Schutzleiter ${({N:"oben",S:"unten",E:"rechts",W:"links"})[e.side]} im Grundriss</li>`}).join("")}</ul>
+      return `<li><b>${e.a} → ${e.b}</b>: Achse ${fmtM(e.axis)}, Schiene ${fmtM(e.len)}${e.pieces.length>1?` (aus ${e.pieces.map(p=>p/1000+" m").join(" + ")})`:e.cutTo?` (aus ${e.pieces[0]/1000} m)`:""}, Schutzleiter ${e.diag?`${e.side} in Richtung ${e.a} → ${e.b}`:({N:"oben",S:"unten",E:"rechts",W:"links"})[e.side]+" im Grundriss"}</li>`}).join("")}</ul>
       <ul>${solved.nodes.filter(n=>n.part).map(n=>`<li><b>${n.id}</b>: ${esc(E.PARTS[n.part].name)}</li>`).join("")}</ul></details>`;
   }
 
@@ -218,12 +235,14 @@
     const pxOf=(x,y)=>({X:G.flip?G.W-(G.pad+x*G.cw):G.pad+x*G.cw,Y:G.pad+y*G.cw});
     let start=null;
     svg.onpointerdown=ev=>{ev.preventDefault();const p=toGrid(ev);
-      if(st.tool==="draw"){start=p;svg.setPointerCapture(ev.pointerId)}
+      if(st.tool==="draw"||st.tool==="diag"){start=p;svg.setPointerCapture(ev.pointerId)}
       else if(st.tool==="feed")toggleFeed(p);
+      else if(st.tool==="flex")toggleFlex(p);
       else eraseAt(p)};
-    svg.onpointermove=ev=>{if(!start)return;const p=toGrid(ev);let x=p.x,y=p.y;if(Math.abs(x-start.x)>=Math.abs(y-start.y))y=start.y;else x=start.x;
+    const snapEnd=p=>{let x=p.x,y=p.y;if(st.tool==='draw'){if(Math.abs(x-start.x)>=Math.abs(y-start.y))y=start.y;else x=start.x}return {x,y}};
+    svg.onpointermove=ev=>{if(!start)return;const {x,y}=snapEnd(toGrid(ev));
       const a=pxOf(start.x,start.y),b=pxOf(x,y),l=$("edPrev");l.setAttribute("x1",a.X);l.setAttribute("y1",a.Y);l.setAttribute("x2",b.X);l.setAttribute("y2",b.Y);l.setAttribute("visibility","visible")};
-    svg.onpointerup=ev=>{if(!start)return;const p=toGrid(ev);let x=p.x,y=p.y;if(Math.abs(x-start.x)>=Math.abs(y-start.y))y=start.y;else x=start.x;
+    svg.onpointerup=ev=>{if(!start)return;const {x,y}=snapEnd(toGrid(ev));
       if(x!==start.x||y!==start.y){snapshot();addLine(start.x,start.y,x,y);
         // Schiene an freies Ende ohne Einspeisung? Erste Schiene bekommt automatisch einen Einspeiser am Startpunkt
         if(st.feeds.size===0&&st.mids.size===0)st.feeds.add(start.x+","+start.y)}
@@ -232,8 +251,18 @@
   }
   const nearestSeg=p=>{const fx=Math.floor(p.gx),fy=Math.floor(p.gy);
     const cands=[`${fx},${Math.round(p.gy)},h`,`${Math.round(p.gx)},${fy},v`];
-    let best=null,bd=0.35;cands.forEach(c=>{if(!st.segs.has(c))return;const [x,y,o]=c.split(",");const d=o==="h"?Math.abs(p.gy-(+y)):Math.abs(p.gx-(+x));if(d<bd){bd=d;best=c}});return best};
-  function degree(pt){const [x,y]=pt.split(",").map(Number);return [`${x},${y},h`,`${x-1},${y},h`,`${x},${y},v`,`${x},${y-1},v`].filter(s=>st.segs.has(s)).length}
+    let best=null,bd=0.35;cands.forEach(c=>{if(!st.segs.has(c))return;const [x,y,o]=c.split(",");const d=o==="h"?Math.abs(p.gy-(+y)):Math.abs(p.gx-(+x));if(d<bd){bd=d;best=c}});
+    // schräge Schienen: Abstand Punkt–Strecke
+    for(const dg of st.diags){const [a,b,c,e]=dg.split(",").map(Number),vx=c-a,vy=e-b,t=Math.max(0,Math.min(1,((p.gx-a)*vx+(p.gy-b)*vy)/(vx*vx+vy*vy)));
+      const d=Math.hypot(p.gx-(a+t*vx),p.gy-(b+t*vy));if(d<bd&&t>0.05&&t<0.95){bd=d;best=dg}}
+    return best};
+  function degree(pt){const [x,y]=pt.split(",").map(Number);let n=[`${x},${y},h`,`${x-1},${y},h`,`${x},${y},v`,`${x},${y-1},v`].filter(s=>st.segs.has(s)).length;
+    for(const d of st.diags){const q=d.split(",");if(q[0]+","+q[1]===pt||q[2]+","+q[3]===pt)n++}return n}
+  function toggleFlex(p){
+    const pt=p.x+","+p.y;if(Math.hypot(p.gx-p.x,p.gy-p.y)>=0.4)return;
+    const n=layoutNow(st.step).nodes.find(n=>n.key===pt);
+    if(!n||(n.type!=="L"&&!(n.type==="flex"&&st.flex.has(pt)))){$("toolHint").textContent=n&&n.type==="flex"?"Hier sitzt schon ein Flex-Verbinder, weil eine schräge Schiene anschließt.":"Ein Flex-Verbinder ersetzt nur einen L-Verbinder an einer rechtwinkligen Ecke. Für schräge Schienen das Werkzeug „Schräg ziehen“ nehmen.";return}
+    snapshot();st.flex.has(pt)?st.flex.delete(pt):st.flex.add(pt);render()}
   function toggleFeed(p){
     const pt=p.x+","+p.y, near=Math.hypot(p.gx-p.x,p.gy-p.y)<0.35;
     if(near&&degree(pt)===1){snapshot();st.feeds.has(pt)?st.feeds.delete(pt):st.feeds.add(pt);render();return}
@@ -242,13 +271,14 @@
   function eraseAt(p){
     const sg=nearestSeg(p);if(!sg)return;snapshot();
     // ganze Kette bis zu den nächsten Knoten löschen
-    const L=E.fromSegments(st.segs,st.feeds,st.mids,st.step);const e=L.edges.find(e=>e.units.includes(sg));
-    (e?e.units:[sg]).forEach(u=>{st.segs.delete(u);st.mids.delete(u)});
+    const L=layoutNow(st.step);const e=L.edges.find(e=>e.units.includes(sg));
+    (e?e.units:[sg]).forEach(u=>{st.segs.delete(u);st.diags.delete(u);st.mids.delete(u)});
     // Einspeiser an Punkten, die kein freies Ende mehr sind, entfernen
     [...st.feeds].forEach(f=>{if(degree(f)!==1)st.feeds.delete(f)});
     render();
   }
 
+  function layoutNow(step){return E.fromSegments(st.segs,st.feeds,st.mids,step,{diags:st.diags,flex:st.flex})}
   let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(st.shape==="draw")render()},150)});
   render();
 })();

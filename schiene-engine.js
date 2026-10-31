@@ -13,6 +13,8 @@
 //  • X-Verbinder: nur eine Ausführung; der SL läuft in zwei Winkeln (z. B. oben+links, unten+rechts),
 //    d. h. eine geradeaus durch das X laufende Linie wechselt die Seite. Das X kann um 90° gedreht werden.
 //  • Einspeiser: „SL rechts/links“ in Blickrichtung vom Einspeiser in die Schiene.
+//  • Flex-Verbinder (555 1 1211, 30°–330°): nur eine Ausführung, Gelenk in der Deckenebene. Der SL bleibt
+//    deshalb in Laufrichtung auf derselben Seite (wie bei einer geraden Schiene). Einzige Möglichkeit für schräge Schienen.
 (function(){
   // Farben: EUTRAC-Endziffer und SLV-Artikel je Teil
   const COLORS={weiss:{label:"weiß (RAL 9016)",e:"6"},schwarz:{label:"schwarz",e:"2"},silber:{label:"silbergrau",e:"3"}};
@@ -35,6 +37,7 @@
     ToutR:{name:"T-Verbinder, Schutzleiter außen, rechts",e:"555 1 1214",slv:{}},
     ToutL:{name:"T-Verbinder, Schutzleiter außen, links",e:"555 1 1215",slv:{}},
     X:{name:"X-Verbinder",e:"555 1 1216",slv:{weiss:"145691",schwarz:"145690",silber:"145694"}},
+    flex:{name:"Flex-Verbinder, 30° bis 330°",e:"555 1 1211",slv:{}},
     stoss:{name:"Stoßstellenverbinder (für Abhängung an jedem Schienenstoß)",e:"99-123",fmt:"acc",slv:{weiss:"145601",schwarz:"145600",silber:"145604"}},
     pendelclip:{name:"Pendelclip (für Seil oder Pendelrohr)",e:"99-075",fmt:"acc",slv:{weiss:"145731",schwarz:"145730",silber:"145734"}},
     rod60:{name:"Pendelaufhängung starr, 60 cm (bauseits kürzbar)",e:"99-905",fmt:"acc",slv:{weiss:"145721",schwarz:"145720",silber:"145724"}},
@@ -65,38 +68,59 @@
     return {find,union(a,b,d){const [ra,pa]=find(a),[rb,pb]=find(b);if(ra===rb)return ((pa^pb)===d);p[rb]=ra;x[rb]=pa^pb^d;return true}};
   }
 
-  // layout: {nodes:[{id,type:'feed'|'end'|'L'|'T'|'X', x, y}], edges:[{a,b,len, midFeed?}]}
+  // layout: {nodes:[{id,type:'feed'|'end'|'L'|'T'|'X'|'flex', x, y}], edges:[{a,b,len, midFeed?}]}
+  // Schräge Schienen sind erlaubt; sie lassen sich nur über Flex-Verbinder, Einspeiser oder Endkappen anschließen.
+  // Bit einer Kante: SL auf der Seite ihrer Bezugsnormalen (waagrecht: Nord, senkrecht: Ost, schräg: links von a→b).
   function solve(layout,prefs={}){
     const N=layout.nodes, E=layout.edges, byId=Object.fromEntries(N.map(n=>[n.id,n]));
     const errors=[], warnings=[];
-    // Kantenrichtung und Arme je Knoten
     E.forEach((e,i)=>{const A=byId[e.a],B=byId[e.b];
       if(!A||!B){errors.push(`Schiene ${i+1}: Knoten fehlt.`);return}
-      if(A.x!==B.x&&A.y!==B.y)errors.push(`Schiene ${i+1} ist nicht waagrecht oder senkrecht.`);
-      e.horiz=A.y===B.y; e.i=i;});
-    const arms={};N.forEach(n=>arms[n.id]={});
+      e.horiz=A.y===B.y; e.vert=A.x===B.x; e.diag=!e.horiz&&!e.vert; e.i=i;
+      const dx=B.x-A.x,dy=B.y-A.y,l=Math.hypot(dx,dy)||1; e.ux=dx/l; e.uy=dy/l;
+      e.nx=e.horiz?0:e.vert?1:e.uy; e.ny=e.horiz?-1:e.vert?0:-e.ux;});
+    // Arme je Knoten: Richtung nach außen
+    const arms={},vec={};N.forEach(n=>{arms[n.id]={};vec[n.id]={}});
+    const key=(ux,uy)=>Math.abs(uy)<1e-9?(ux>0?"E":"W"):Math.abs(ux)<1e-9?(uy>0?"S":"N"):"D"+Math.round(Math.atan2(uy,ux)*1800/Math.PI);
     E.forEach(e=>{const A=byId[e.a],B=byId[e.b];if(!A||!B)return;
-      const dA=e.horiz?(B.x>A.x?"E":"W"):(B.y>A.y?"S":"N");
-      if(arms[A.id][dA]!=null)errors.push(`Knoten ${A.id}: zwei Schienen in Richtung ${dA}.`);
-      if(arms[B.id][OPP[dA]]!=null)errors.push(`Knoten ${B.id}: zwei Schienen in Richtung ${OPP[dA]}.`);
-      arms[A.id][dA]=e.i;arms[B.id][OPP[dA]]=e.i;});
+      const dA=key(e.ux,e.uy), dB=key(-e.ux,-e.uy);
+      if(arms[A.id][dA]!=null)errors.push(`${label(A)}: zwei Schienen in derselben Richtung.`);
+      if(arms[B.id][dB]!=null)errors.push(`${label(B)}: zwei Schienen in derselben Richtung.`);
+      arms[A.id][dA]=e.i;arms[B.id][dB]=e.i;vec[A.id][dA]=[e.ux,e.uy];vec[B.id][dB]=[-e.ux,-e.uy];});
+    // c: liegt der SL links in Blickrichtung nach außen, wenn bit=1? leftOut = bit XOR c
+    const cOf=(n,d)=>{const e=E[arms[n.id][d]],[vx,vy]=vec[n.id][d];return (vy*e.nx-vx*e.ny)<0?1:0};
     const need={feed:1,end:1,L:2,T:3,X:4,flex:2};
-    N.forEach(n=>{const k=Object.keys(arms[n.id]).length;if(need[n.type]!==k)errors.push(`${label(n)} hat ${k} statt ${need[n.type]} Anschlüsse.`);
-      if(n.type==="L"){const d=Object.keys(arms[n.id]);if(isH(d[0])===isH(d[1]))errors.push(`${label(n)}: Die beiden Schienen müssen einen rechten Winkel bilden.`)}
-      if(n.type==="T"){const d=Object.keys(arms[n.id]);if(!((d.includes("E")&&d.includes("W"))||(d.includes("N")&&d.includes("S"))))errors.push(`${label(n)}: keine durchgehende Linie.`)}});
+    N.forEach(n=>{const d=Object.keys(arms[n.id]),k=d.length;
+      if(need[n.type]!==k){errors.push(`${label(n)} hat ${k} statt ${need[n.type]} Anschlüsse.`);return}
+      if(["L","T","X"].includes(n.type)&&d.some(x=>x[0]==="D")){errors.push(`${label(n)}: Eine schräge Schiene lässt sich nicht an einen ${n.type}-Verbinder anschließen, nur über Flex-Verbinder, Einspeiser oder Endkappe.`);return}
+      if(n.type==="L"&&isH(d[0])===isH(d[1]))errors.push(`${label(n)}: Die beiden Schienen müssen einen rechten Winkel bilden.`);
+      if(n.type==="T"&&!((d.includes("E")&&d.includes("W"))||(d.includes("N")&&d.includes("S"))))errors.push(`${label(n)}: keine durchgehende Linie.`);
+      if(n.type==="flex"){const [a,b]=d.map(x=>vec[n.id][x]);const ang=Math.round(Math.acos(Math.max(-1,Math.min(1,a[0]*b[0]+a[1]*b[1])))*180/Math.PI);
+        n.angle=ang; if(ang<30)errors.push(`${label(n)}: Winkel ${ang}° ist zu spitz. Der Flex-Verbinder reicht von 30° bis 330°.`);
+        if(ang===180)warnings.push(`${label(n)} ist gestreckt (180°). Dort genügt ein elektrischer Längsverbinder.`)}});
     if(errors.length)return {ok:false,errors,warnings};
 
-    // Bedingungen aufstellen
-    const uf=UF(E.length), conflicts=[];
-    const add=(a,b,d,n,why)=>{if(!uf.union(a,b,d))conflicts.push({node:n.id,why})};
-    N.forEach(n=>{const a=arms[n.id];
-      if(n.type==="T"){ if(a.E!=null&&a.W!=null)add(a.E,a.W,0,n,"durchgehende Linie im T"); else add(a.N,a.S,0,n,"durchgehende Linie im T") }
-      if(n.type==="L"){ const h=a.E!=null?"E":"W", v=a.N!=null?"N":"S";
-        add(a[h],a[v],(v==="N"?1:0)^(h==="E"?1:0),n,"Schutzleiter innen/außen im L") }
-      if(n.type==="X"){ add(a.S,a.N,1,n,"X-Verbinder"); add(a.E,a.N,0,n,"X-Verbinder"); add(a.W,a.N,1,n,"X-Verbinder") }
-    });
+    // Bedingungen aufstellen (skip: Knoten weglassen, um die Ursache eines Widerspruchs zu finden)
+    const build=skip=>{const uf=UF(E.length), conflicts=[];
+      const add=(a,b,d,n,why)=>{if(!uf.union(a,b,d))conflicts.push({node:n.id,why})};
+      N.forEach(n=>{if(n.id===skip)return;const a=arms[n.id];
+        if(n.type==="T"){ if(a.E!=null&&a.W!=null)add(a.E,a.W,0,n,"durchgehende Linie im T"); else add(a.N,a.S,0,n,"durchgehende Linie im T") }
+        if(n.type==="L"){ const h=a.E!=null?"E":"W", v=a.N!=null?"N":"S";
+          add(a[h],a[v],(v==="N"?1:0)^(h==="E"?1:0),n,"Schutzleiter innen/außen im L") }
+        if(n.type==="X"){ add(a.S,a.N,1,n,"X-Verbinder"); add(a.E,a.N,0,n,"X-Verbinder"); add(a.W,a.N,1,n,"X-Verbinder") }
+        // Flex: Gelenk in der Deckenebene, nur eine Ausführung → SL bleibt in Laufrichtung auf derselben Seite
+        if(n.type==="flex"){ const [d1,d2]=Object.keys(a); add(a[d1],a[d2],1^cOf(n,d1)^cOf(n,d2),n,"Flex-Verbinder") }
+      });
+      return {uf,conflicts}};
+    const {uf,conflicts}=build(null);
     if(conflicts.length){
-      return {ok:false,conflicts,errors:[`Der Schutzleiter lässt sich in dieser Form nicht durchgängig führen (Widerspruch an ${[...new Set(conflicts.map(c=>label(byId[c.node])))].join(", ")}). Abhilfe: die Form an dieser Stelle teilen und getrennt einspeisen, oder einen X-Verbinder durch zwei T-Verbinder ersetzen.`],warnings};
+      // Ursache suchen: welche X-Verbinder (sonst welche Knoten) lösen den Widerspruch, wenn man sie weglässt?
+      const xs=N.filter(n=>n.type==="X").filter(n=>!build(n.id).conflicts.length);
+      const cause=xs.length?xs:N.filter(n=>n.type!=="feed"&&n.type!=="end").filter(n=>!build(n.id).conflicts.length);
+      const marked=cause.length?cause.map(n=>({node:n.id})):conflicts;
+      const names=[...new Set(marked.map(c=>label(byId[c.node])))].join(", ");
+      const fix=xs.length?`Ein gerade durch ${xs.length>1?"ein X":"das X"} laufender Ring wechselt dort die Seite des Schutzleiters und kommt nicht passend zurück. Abhilfe: den X-Verbinder durch zwei T-Verbinder ersetzen, oder den Ring an einer Stelle auftrennen (zwei Endkappen) und getrennt einspeisen.`:`Abhilfe: die Form an dieser Stelle auftrennen (zwei Endkappen) und getrennt einspeisen, oder einen Verbinder durch einen Flex-Verbinder ersetzen.`;
+      return {ok:false,conflicts:marked,errors:[`Der Schutzleiter lässt sich in dieser Form nicht durchgängig führen. Ursache: ${names}. ${fix}`],warnings};
     }
     // Freie Wahl je zusammenhängendem Bauteil: Varianten bevorzugen, die es auch bei SLV gibt (T „innen“),
     // danach die vom Nutzer gewünschte Seite an der ersten Kante.
@@ -105,7 +129,7 @@
       const bit=i=>{const [r,p]=uf.find(i);return assign[r]^p};
       let score=0;
       N.forEach(n=>{if(n.type==="T"){const v=variantT(n,arms[n.id],bit,E);if(v.startsWith("Tin"))score+=10}});
-      if(prefs.firstSide&&E.length){const e=E[0];if(sideOf(e.horiz,bit(0))===prefs.firstSide)score+=1}
+      if(prefs.firstSide&&E.length){const e=E[0];if(!e.diag&&sideOf(e.horiz,bit(0))===prefs.firstSide)score+=1}
       return {score,bit};
     };
     let best=null;
@@ -113,14 +137,15 @@
       for(let m=0;m<(1<<roots.length);m++){const asg={};roots.forEach((r,k)=>asg[r]=(m>>k)&1);const r=evalAssign(asg);if(!best||r.score>best.score)best=r}
     }else{const asg={};roots.forEach(r=>asg[r]=0);best=evalAssign(asg)}
     const bit=best.bit;
-    // Ergebnis: Seiten je Kante, Varianten je Knoten
-    const edges=E.map(e=>({...e,bit:bit(e.i),side:sideOf(e.horiz,bit(e.i))}));
+    // Ergebnis: Seiten je Kante (side für Achsen, sl = Richtung zum Schutzleiter), Varianten je Knoten
+    const edges=E.map(e=>{const b=bit(e.i),sg=b?1:-1;return {...e,bit:b,side:e.diag?(b?"links":"rechts"):sideOf(e.horiz,b),sl:[e.nx*sg,e.ny*sg]}});
     const nodes=N.map(n=>{const a=arms[n.id];let part=null,variant=null,extra={};
       if(n.type==="end"){part="endcap"}
-      if(n.type==="feed"){const d=Object.keys(a)[0],s=edges[a[d]].side;variant=s===RIGHT[d]?"rechts":"links";part=variant==="rechts"?"feedR":"feedL";extra.dir=d}
+      if(n.type==="feed"){const d=Object.keys(a)[0],left=edges[a[d]].bit^cOf(n,d);variant=left?"links":"rechts";part=left?"feedL":"feedR";extra.dir=d}
       if(n.type==="L"){const h=a.E!=null?"E":"W",v=a.N!=null?"N":"S";const inner=edges[a[h]].side===v;variant=inner?"innen":"außen";part=inner?"Lin":"Lout"}
       if(n.type==="T"){part=variantT(n,a,bit,E);variant=PARTS[part].name.replace(/^T-Verbinder, Schutzleiter /,"")}
       if(n.type==="X"){part="X";extra.orient=edges[a.N].side==="W"?0:1}
+      if(n.type==="flex"){part="flex";variant=n.angle+"°"}
       return {...n,part,variant,arms:a,...extra};});
     if(nodes.some(n=>n.part&&(n.part==="ToutR"||n.part==="ToutL")))warnings.push("T-Verbinder „Schutzleiter außen“ gibt es nicht unter SLV-Nummer, nur direkt als EUTRAC-Artikel.");
     return {ok:true,edges,nodes,warnings,errors:[]};
@@ -189,7 +214,7 @@
     checks.push({ok:true,text:"Schutzleiter durchgängig geführt; Einspeiser- und Verbindervarianten passend gewählt"});
     if(cuts.length)cuts.forEach(c=>notes.push(`Zuschnitt: eine ${c.piece/1000}-m-Schiene auf ${(c.to/1000).toLocaleString("de-DE",{minimumFractionDigits:2})} m kürzen (Absägen am Schienenende, Leiter müssen nicht nachbearbeitet werden).`));
     const list=Object.values(items).map(it=>({...it,...PARTS[it.key],...partNo(it.key,opts.color)}));
-    const order=["rail4","rail3","rail2","rail1","feedR","feedL","feedMid","jointFeed","joint","Lin","Lout","TinR","TinL","ToutR","ToutL","X","endcap","stoss","pendelclip","rod60","rod120","rope150","rope300","rope620","deckenclip"];
+    const order=["rail4","rail3","rail2","rail1","feedR","feedL","feedMid","jointFeed","joint","Lin","Lout","TinR","TinL","ToutR","ToutL","X","flex","endcap","stoss","pendelclip","rod60","rod120","rope150","rope300","rope620","deckenclip"];
     list.sort((a,b)=>order.indexOf(a.key)-order.indexOf(b.key));
     return {items:list,notes,checks,totalLen};
   }
@@ -207,29 +232,44 @@
   // feeds: Set von Punkten "x,y" (nur an freien Enden wirksam), mids: Set von Einheitsstrecken mit Mitteneinspeiser
   // Platzbedarf der Verbinder ab Achsmitte laut Katalog: T/X 120 mm → 60 je Arm, L-Schenkel 78 mm außen → 60 ab Ecke,
   // Einspeiser 72 mm, Endkappe 6,5 mm. Die Schienenlänge ist die gezeichnete Achslänge minus diese Anteile.
-  const DEDUCT={L:60,T:60,X:60,feed:72,end:6.5};
-  function fromSegments(segs,feeds,mids,stepMM){
-    const adj={}; const k=(x,y)=>x+","+y;
+  const DEDUCT={L:60,T:60,X:60,flex:60,feed:72,end:6.5};
+  // opts.diags: Set schräger Schienen "x0,y0,x1,y1"; opts.flex: Set von Ecken "x,y", an denen statt L ein Flex-Verbinder sitzt
+  function fromSegments(segs,feeds,mids,stepMM,opts={}){
+    const diags=opts.diags||new Set(), flexPts=opts.flex||new Set();
+    const adj={}, ulen={}; const k=(x,y)=>x+","+y;
     const link=(a,b,s)=>{(adj[a]=adj[a]||{})[b]=s};
-    for(const s of segs){const [x,y,o]=s.split(",");const X=+x,Y=+y;
+    for(const s of segs){const [x,y,o]=s.split(",");const X=+x,Y=+y;ulen[s]=1;
       if(o==="h"){link(k(X,Y),k(X+1,Y),s);link(k(X+1,Y),k(X,Y),s)} else {link(k(X,Y),k(X,Y+1),s);link(k(X,Y+1),k(X,Y),s)}}
-    const P=Object.keys(adj); const dirOf=(a,b)=>{const [ax,ay]=a.split(",").map(Number),[bx,by]=b.split(",").map(Number);return bx>ax?"E":bx<ax?"W":by>ay?"S":"N"};
-    const isNode=p=>{const n=Object.keys(adj[p]);if(n.length!==2)return true;const d=n.map(q=>dirOf(p,q));return !(OPP[d[0]]===d[1])};
+    for(const d of diags){const [x0,y0,x1,y1]=d.split(",").map(Number);ulen[d]=Math.hypot(x1-x0,y1-y0);link(k(x0,y0),k(x1,y1),d);link(k(x1,y1),k(x0,y0),d)}
+    const P=Object.keys(adj); const isDiag=s=>s.split(",").length===4;
+    const dirOf=(a,b)=>{const [ax,ay]=a.split(",").map(Number),[bx,by]=b.split(",").map(Number);return bx>ax?"E":bx<ax?"W":by>ay?"S":"N"};
+    const hasDiag=p=>Object.values(adj[p]).some(isDiag);
+    const isNode=p=>{const n=Object.keys(adj[p]);if(n.length!==2||hasDiag(p)||flexPts.has(p))return true;const d=n.map(q=>dirOf(p,q));return !(OPP[d[0]]===d[1])};
     const nodes=[],edges=[],seen=new Set(),idOf={};
     P.filter(isNode).forEach((p,i)=>{const deg=Object.keys(adj[p]).length;const [x,y]=p.split(",").map(Number);
-      const type=deg===1?(feeds.has(p)?"feed":"end"):deg===2?"L":deg===3?"T":"X";
-      const id=type[0].toUpperCase()+(i+1);idOf[p]=id;nodes.push({id,type,x,y,key:p})});
+      const type=deg===1?(feeds.has(p)?"feed":"end"):deg===2?(hasDiag(p)||flexPts.has(p)?"flex":"L"):deg===3?"T":"X";
+      const id=(type==="flex"?"F":type==="feed"?"E":type[0].toUpperCase())+(i+1);idOf[p]=id;nodes.push({id,type,x,y,key:p})});
     // Ringe ohne Knoten gibt es nicht (gerade Ringe sind unmöglich); jede Kette läuft von Knoten zu Knoten
     nodes.forEach(n=>{Object.keys(adj[n.key]).forEach(q=>{
       const first=adj[n.key][q]; if(seen.has(first))return;
       let prev=n.key,cur=q,units=[first],mid=mids.has(first);seen.add(first);
       while(!idOf[cur]){const nx=Object.keys(adj[cur]).find(r=>r!==prev);const s=adj[cur][nx];seen.add(s);units.push(s);if(mids.has(s))mid=true;prev=cur;cur=nx}
-      const axis=units.length*stepMM;const b=nodes.find(m=>m.key===cur);
+      const axis=Math.round(units.reduce((t,u)=>t+ulen[u],0)*stepMM);const b=nodes.find(m=>m.key===cur);
       const rail=axis-DEDUCT[n.type]-DEDUCT[b.type];
       edges.push({a:n.id,b:b.id,len:rail,axis,midFeed:mid,units});
     })});
-    return {nodes,edges};
+    // Kreuzungen ohne Verbinder (schräge Schiene über eine andere Schiene)
+    const crossings=[];
+    const lines=[...segs].map(s=>{const [x,y,o]=s.split(",");return [+x,+y,o==="h"?+x+1:+x,o==="h"?+y:+y+1,s]}).concat([...diags].map(d=>[...d.split(",").map(Number),d]));
+    const cr=(ax,ay,bx,by,cx,cy)=>(bx-ax)*(cy-ay)-(by-ay)*(cx-ax);
+    for(const d of diags){const [x0,y0,x1,y1]=d.split(",").map(Number);
+      // Rasterpunkte im Inneren der Schrägen, an denen schon Schienen liegen
+      const g=(a,b)=>b?g(b,a%b):Math.abs(a), n=g(x1-x0,y1-y0);
+      for(let i=1;i<n;i++){const p=k(x0+(x1-x0)*i/n,y0+(y1-y0)*i/n);if(adj[p]&&Object.keys(adj[p]).length>0){crossings.push(p);break}}
+      for(const L of lines){if(L[4]===d)continue;const [a,b,c,e]=L;
+        const d1=cr(x0,y0,x1,y1,a,b),d2=cr(x0,y0,x1,y1,c,e),d3=cr(a,b,c,e,x0,y0),d4=cr(a,b,c,e,x1,y1);
+        if(d1*d2<0&&d3*d4<0){crossings.push(`${(x0+x1)/2},${(y0+y1)/2}`);break}}}
+    return {nodes,edges,crossings};
   }
-
   window.SchienenEngine={COLORS,PARTS,partNo,solve,bill,cut,straight,sideOf,RIGHT,fromSegments,DEDUCT};
 })();

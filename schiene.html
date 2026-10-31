@@ -9,8 +9,8 @@
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="theme-color" content="#262E3C">
-<link rel="stylesheet" href="fonts.css?v=20261101j">
-<link rel="stylesheet" href="style.css?v=20261101j">
+<link rel="stylesheet" href="fonts.css?v=20261101k">
+<link rel="stylesheet" href="style.css?v=20261101k">
 </head>
 <body class="planner">
 <a class="skiplink" href="#planOut">Zur Stückliste springen</a>
@@ -82,6 +82,8 @@
       <div class="edtools drawonly" role="toolbar" aria-label="Werkzeuge zum Zeichnen">
         <div class="seg" role="group" aria-label="Werkzeug">
           <button type="button" data-tool="draw" aria-pressed="true">Schiene ziehen</button>
+          <button type="button" data-tool="diag" aria-pressed="false">Schräg ziehen</button>
+          <button type="button" data-tool="flex" aria-pressed="false">Flex-Ecke</button>
           <button type="button" data-tool="feed" aria-pressed="false">Einspeisung</button>
           <button type="button" data-tool="erase" aria-pressed="false">Löschen</button>
         </div>
@@ -114,6 +116,7 @@
         <li><b>Einspeiser „rechts/links“:</b> von oben auf den Grundriss geschaut (Öffnung der Schiene nach unten), in Blickrichtung vom Einspeiser in die Schiene.</li>
         <li><b>L‑Verbinder „innen/außen“:</b> liegt der Schutzleiter an der Innen- oder an der Außenseite der Ecke?</li>
         <li><b>T‑Verbinder:</b> „innen“ heißt, der Schutzleiter der durchgehenden Schiene liegt auf der Seite des Abzweigs; „rechts/links“ beschreibt den Abzweig vom Knoten aus gesehen.</li>
+        <li><b>Flex‑Verbinder</b> (555 1 1211, 30° bis 330°): gibt es nur in einer Ausführung. Er hat ein Gelenk in der Deckenebene, deshalb bleibt der Schutzleiter in Laufrichtung auf derselben Seite. Er ist der einzige Weg, schräge Schienen anzuschließen, und kann auch einen L‑Verbinder ersetzen.</li>
         <li><b>X‑Verbinder:</b> gibt es nur einmal. Eine gerade durch das X laufende Schiene wechselt dabei die Seite – bei Rahmen und H‑Formen mit X ist das der Knackpunkt.</li>
       </ul>
       <p class="fine">Steht man im Raum und schaut an die Decke, ist alles gespiegelt. Die Ansicht „von unten“ zeigt die Schiene so, wie du sie montiert siehst. Die Teilenamen bleiben dabei die des Katalogs. Quellen: EUTRAC Katalog 06/2022, S. 61–65, 88, 91, 92; SLV‑Zuordnung zu EUTRAC‑Artikeln. Angaben ohne Gewähr – Montage und Anschluss durch eine Elektrofachkraft.</p>
@@ -123,7 +126,7 @@
 
 <footer class="sitefoot"><a href="./">Leuchtenliste</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
 
-<script src="schiene-engine.js?v=20261101j"></script>
-<script src="schiene.js?v=20261101j"></script>
+<script src="schiene-engine.js?v=20261101k"></script>
+<script src="schiene.js?v=20261101k"></script>
 </body>
 </html>
