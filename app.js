@@ -1,9 +1,9 @@
 // Leuchtendaten kommen aus leuchten.json, die Merkliste aus einem Sitzungs-Cookie (merkliste-store.js).
 (async()=>{
 let rows;
-try{ rows=await (await fetch("leuchten.json?v=20261101f",{cache:"no-cache"})).json() }
+try{ rows=await (await fetch("leuchten.json?v=20261101g",{cache:"no-cache"})).json() }
 catch(e){ document.getElementById("count").textContent="Leuchtendaten (leuchten.json) konnten nicht geladen werden."; return }
-rows.forEach(r=>{r.type=r.type||"Spot";r.lamp=r.lamp||"LED integriert";r.key=r.brand.replace(/\W/g,"")+"_"+r.art;r.lmw=(r.lm&&r.w&&!r.lmText)?Math.round(r.lm/r.w):null;r.cctSort=r.ccts.length?Math.min(...r.ccts):null});
+rows.forEach(r=>{r.type=r.type||"Spot";r.lamp=r.lamp||"LED integriert";r.key=r.key||(r.brand.replace(/\W/g,"")+"_"+r.art);r.lmw=(r.lm&&r.w&&!r.lmText)?Math.round(r.lm/r.w):null;r.cctSort=r.ccts.length?Math.min(...r.ccts):null});
 
 const byKey=Object.fromEntries(rows.map(r=>[r.key,r]));
 const ANGLE_BUCKETS=[["eng","≤ 24°",(r)=>r.aMin!=null&&r.aMin<=24],["mittel","25–40°",(r)=>r.aMin!=null&&r.aMin<=40&&r.aMax>=25],["breit","≥ 50°",(r)=>r.aMax!=null&&r.aMax>=50],["zoom","Zoom/wählbar",(r)=>r.aMin!=null&&r.aMin!==r.aMax]];
@@ -32,7 +32,7 @@ chipGroup("fAngle","angle",ANGLE_BUCKETS.map(b=>b[0]),v=>ANGLE_BUCKETS.find(b=>b
 chipGroup("fType","type",["Spot","Pendel","Linear/Fläche"]);
 chipGroup("fLamp","lamp",["LED integriert","wechselbar"],v=>v==="wechselbar"?"wechselbar (GU10/E27)":v);
 chipGroup("fColor","color",["schwarz","weiß","grau","andere"]);
-chipGroup("fDim","dim",["Abschnitt","An-/Abschnitt","Anschnitt","Abschnitt (Dim‑to‑Warm)","je Leuchtmittel","k. A."],v=>v==="Abschnitt (Dim‑to‑Warm)"?"Dim‑to‑Warm":v);
+chipGroup("fDim","dim",["Abschnitt","An-/Abschnitt","Anschnitt","Abschnitt (Dim‑to‑Warm)","dimmbar, Art k. A.","je Leuchtmittel","k. A."],v=>v==="Abschnitt (Dim‑to‑Warm)"?"Dim‑to‑Warm":v==="dimmbar, Art k. A."?"dimmbar, Art unbekannt":v);
 
 const head=document.getElementById("head");
 COLS.forEach(c=>{const th=document.createElement("th");if(c.n)th.className="n";
@@ -196,7 +196,7 @@ function cardHtml(r,u,an,dis){
   return `<article class="card${u.length?" on":""}">
     <div class="beam">${beam(r)}<span class="deg">${esc(r.angleLabel)}</span></div>
     <div class="body">
-      <div class="ctop"><span class="brand">${esc(r.brand)}</span><span class="art">Art.-Nr. ${esc(r.art)}</span></div>
+      <div class="ctop"><span class="brand">${esc(r.brand)}</span><span class="art">${/\d/.test(r.art)?"Art.-Nr. "+esc(r.art):"Konfigurationsprodukt, ohne Art.-Nr."}</span></div>
       <h3 class="name"${r.modelOrig?` title="Im Shop: ${esc(r.modelOrig)}"`:""}>${esc(r.model)}</h3>
       ${r.hinweis?`<p class="hint">${esc(r.hinweis)}</p>`:""}
       <dl class="specs">${specs}</dl>
