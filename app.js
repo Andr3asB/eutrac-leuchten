@@ -68,7 +68,7 @@ function render(){
     <td><span class="cct">${r.ccts.map(c=>`<span class="dot" style="background:${CCT_COLOR[c]}"></span>`).join("")}${r.cctLabel}</span></td>
     <td>${r.angleLabel}</td><td>${r.color}</td>
     <td class="n">${fmt(r.w)}</td><td class="n">${r.lmText||fmt(r.lm)}</td><td class="n">${fmt(r.lmw)}</td><td class="n">${fmt(r.cri)}</td><td>${r.dim}</td><td class="n">${fmt(r.ugr)}</td>
-    <td class="mono">${r.dims}</td><td class="n">${fmt(r.price)}</td><td class="mono">${r.art}</td>
+    <td class="mono">${r.dims}</td><td class="n">${fmt(r.price)}${r.priceSrc?`<a class="psrc" href="${esc(r.priceUrl||r.ds)}" target="_blank" rel="noopener" title="Preis von ${esc(r.priceSrc)}, Stand ${esc(r.priceDate||"?")}">${esc(r.priceSrc)}${r.priceDate?" · "+esc(r.priceDate.split("-").reverse().join("/")):""}</a>`:""}</td><td class="mono">${r.art}</td>
     <td><span class="links"><a href="${r.ds}" target="_blank" rel="noopener">${r.dsLabel||"Datenblatt"}</a>${r.img!==r.ds?`<a href="${r.img}" target="_blank" rel="noopener">${r.imgLabel||"Bilder"}</a>`:""}${r.shop?`<a href="${r.shop}" target="_blank" rel="noopener">Shop</a>`:""}</span></td></tr>`}).join("");
 }
 
