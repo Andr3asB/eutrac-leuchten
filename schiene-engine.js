@@ -202,5 +202,34 @@
     return {nodes:[L,R],edges:[{a:"A",b:"B",len:lenMM}]};
   }
 
-  window.SchienenEngine={COLORS,PARTS,partNo,solve,bill,cut,straight,sideOf,RIGHT};
+  // ---------- Gezeichnete Form (Raster) → Knoten und Schienen ----------
+  // segs: Set von Einheitsstrecken "x,y,h" (waagrecht von x,y nach x+1,y) bzw. "x,y,v" (senkrecht nach x,y+1)
+  // feeds: Set von Punkten "x,y" (nur an freien Enden wirksam), mids: Set von Einheitsstrecken mit Mitteneinspeiser
+  // Platzbedarf der Verbinder ab Achsmitte laut Katalog: T/X 120 mm → 60 je Arm, L-Schenkel 78 mm außen → 60 ab Ecke,
+  // Einspeiser 72 mm, Endkappe 6,5 mm. Die Schienenlänge ist die gezeichnete Achslänge minus diese Anteile.
+  const DEDUCT={L:60,T:60,X:60,feed:72,end:6.5};
+  function fromSegments(segs,feeds,mids,stepMM){
+    const adj={}; const k=(x,y)=>x+","+y;
+    const link=(a,b,s)=>{(adj[a]=adj[a]||{})[b]=s};
+    for(const s of segs){const [x,y,o]=s.split(",");const X=+x,Y=+y;
+      if(o==="h"){link(k(X,Y),k(X+1,Y),s);link(k(X+1,Y),k(X,Y),s)} else {link(k(X,Y),k(X,Y+1),s);link(k(X,Y+1),k(X,Y),s)}}
+    const P=Object.keys(adj); const dirOf=(a,b)=>{const [ax,ay]=a.split(",").map(Number),[bx,by]=b.split(",").map(Number);return bx>ax?"E":bx<ax?"W":by>ay?"S":"N"};
+    const isNode=p=>{const n=Object.keys(adj[p]);if(n.length!==2)return true;const d=n.map(q=>dirOf(p,q));return !(OPP[d[0]]===d[1])};
+    const nodes=[],edges=[],seen=new Set(),idOf={};
+    P.filter(isNode).forEach((p,i)=>{const deg=Object.keys(adj[p]).length;const [x,y]=p.split(",").map(Number);
+      const type=deg===1?(feeds.has(p)?"feed":"end"):deg===2?"L":deg===3?"T":"X";
+      const id=type[0].toUpperCase()+(i+1);idOf[p]=id;nodes.push({id,type,x,y,key:p})});
+    // Ringe ohne Knoten gibt es nicht (gerade Ringe sind unmöglich); jede Kette läuft von Knoten zu Knoten
+    nodes.forEach(n=>{Object.keys(adj[n.key]).forEach(q=>{
+      const first=adj[n.key][q]; if(seen.has(first))return;
+      let prev=n.key,cur=q,units=[first],mid=mids.has(first);seen.add(first);
+      while(!idOf[cur]){const nx=Object.keys(adj[cur]).find(r=>r!==prev);const s=adj[cur][nx];seen.add(s);units.push(s);if(mids.has(s))mid=true;prev=cur;cur=nx}
+      const axis=units.length*stepMM;const b=nodes.find(m=>m.key===cur);
+      const rail=axis-DEDUCT[n.type]-DEDUCT[b.type];
+      edges.push({a:n.id,b:b.id,len:rail,axis,midFeed:mid,units});
+    })});
+    return {nodes,edges};
+  }
+
+  window.SchienenEngine={COLORS,PARTS,partNo,solve,bill,cut,straight,sideOf,RIGHT,fromSegments,DEDUCT};
 })();

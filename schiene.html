@@ -9,8 +9,8 @@
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="theme-color" content="#262E3C">
-<link rel="stylesheet" href="fonts.css?v=20261101h">
-<link rel="stylesheet" href="style.css?v=20261101h">
+<link rel="stylesheet" href="fonts.css?v=20261101j">
+<link rel="stylesheet" href="style.css?v=20261101j">
 </head>
 <body class="planner">
 <a class="skiplink" href="#planOut">Zur Stückliste springen</a>
@@ -29,17 +29,15 @@
     <fieldset>
       <legend>Form</legend>
       <div class="chips" role="radiogroup" aria-label="Form">
-        <button type="button" role="radio" aria-checked="true" data-shape="straight">gerade</button>
-        <button type="button" role="radio" aria-checked="false" disabled title="folgt">L</button>
-        <button type="button" role="radio" aria-checked="false" disabled title="folgt">T</button>
-        <button type="button" role="radio" aria-checked="false" disabled title="folgt">H, X, Rahmen …</button>
+        <button type="button" role="radio" aria-checked="true" data-shape="straight">gerade (Länge eingeben)</button>
+        <button type="button" role="radio" aria-checked="false" data-shape="draw">Form zeichnen</button>
       </div>
-      <p class="fine">Weitere Formen folgen. Der Rechenkern beherrscht sie bereits, inklusive Schutzleiter-Prüfung bei X‑Verbindern.</p>
+      <p class="fine" id="shapeHint">Für eine einzelne gerade Schiene. Für L, T, U, H, X, Rahmen und andere Formen: „Form zeichnen“.</p>
     </fieldset>
 
     <fieldset>
       <legend>Schiene</legend>
-      <div class="f"><label for="len">Schienenlänge</label>
+      <div class="f straightonly"><label for="len">Schienenlänge</label>
         <div class="unit"><input type="text" id="len" value="3" inputmode="decimal" autocomplete="off" aria-describedby="lenHint"><span>m</span></div><span class="fine" id="lenHint">z. B. 2,40 – Komma oder Punkt</span></div>
       <div class="f"><label for="maxLen">Längste Schiene, die ich kaufe</label>
         <select id="maxLen"><option value="2">2 m (gut zu transportieren)</option><option value="3" selected>3 m</option><option value="4">4 m</option></select></div>
@@ -47,7 +45,7 @@
         <select id="color"><option value="weiss">weiß</option><option value="schwarz">schwarz</option><option value="silber">silbergrau</option></select></div>
     </fieldset>
 
-    <fieldset>
+    <fieldset class="straightonly">
       <legend>Einspeisung</legend>
       <div class="chips" role="radiogroup" aria-label="Lage der Einspeisung">
         <button type="button" role="radio" aria-checked="true" data-feed="left">am linken Ende</button>
@@ -81,7 +79,21 @@
     <section class="drawing" aria-labelledby="drawH">
       <div class="drawhead"><h2 id="drawH">Grundriss</h2>
         <div class="seg" role="group" aria-label="Ansicht"><button type="button" data-view="top" aria-pressed="true">von oben (wie im Katalog)</button><button type="button" data-view="below" aria-pressed="false">von unten (an die Decke geschaut)</button></div></div>
+      <div class="edtools drawonly" role="toolbar" aria-label="Werkzeuge zum Zeichnen">
+        <div class="seg" role="group" aria-label="Werkzeug">
+          <button type="button" data-tool="draw" aria-pressed="true">Schiene ziehen</button>
+          <button type="button" data-tool="feed" aria-pressed="false">Einspeisung</button>
+          <button type="button" data-tool="erase" aria-pressed="false">Löschen</button>
+        </div>
+        <label class="inl">Raster <select id="gridStep"><option value="100">10 cm</option><option value="250">25 cm</option><option value="500" selected>50 cm</option><option value="1000">1 m</option></select></label>
+        <label class="inl">Fläche <input type="text" id="areaW" value="6" inputmode="decimal" aria-label="Breite der Zeichenfläche in Metern"> × <input type="text" id="areaH" value="4" inputmode="decimal" aria-label="Tiefe der Zeichenfläche in Metern"> m</label>
+        <label class="inl">Vorlage <select id="preset"><option value="">wählen …</option></select></label>
+        <button type="button" class="ghost" id="undo">Rückgängig</button>
+        <button type="button" class="ghost" id="clearAll">Alles löschen</button>
+      </div>
+      <p class="fine drawonly" id="toolHint"></p>
       <div id="svgBox" class="svgbox"></div>
+      <div class="edgelist drawonly" id="edgeList"></div>
       <p class="fine" id="drawNote"></p>
     </section>
 
@@ -111,7 +123,7 @@
 
 <footer class="sitefoot"><a href="./">Leuchtenliste</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
 
-<script src="schiene-engine.js?v=20261101h"></script>
-<script src="schiene.js?v=20261101h"></script>
+<script src="schiene-engine.js?v=20261101j"></script>
+<script src="schiene.js?v=20261101j"></script>
 </body>
 </html>

@@ -10,7 +10,7 @@ Filterbare Übersicht über Leuchten für EUTRAC-3-Phasen-Stromschienen (SLV, De
 | `style.css` | Gestaltung |
 | `leuchten.json` | **Leuchtendaten** – eine Leuchte pro Zeile; hier ergänzen/ändern. `model` ist der angezeigte Name, `modelOrig` (falls vorhanden) die Originalbezeichnung im Shop |
 | `app.js` | Filter, Tabelle, Merkliste |
-| `schiene.html`, `schiene.js`, `schiene-engine.js` | Schienenplaner: Stückliste für die EUTRAC 3~ Aufbauschiene mit Schutzleiter-Logik (Rechenkern auch für L/T/X/H-Formen) |
+| `schiene.html`, `schiene.js`, `schiene-engine.js` | Schienenplaner: Stückliste für die EUTRAC 3~ Aufbauschiene mit Schutzleiter-Logik – gerade Schiene per Länge oder beliebige Form auf dem Raster zeichnen (L, T, U, H, 8, X, Rahmen; Vorlagen, Rückgängig, Ansicht von unten). Tests: `node tests/schiene-engine.test.js` |
 | `tour.js` | Einführungstour (beim ersten Besuch automatisch, sonst über „Tour“ in der Fußzeile) |
 | `merkliste-store.js` | Speichert die Merkliste: lokal im Sitzungs-Cookie oder gemeinsam (verschlüsselt) in Supabase |
 | `config.js` | Zugangsdaten für Supabase (leer = nur lokale Merkliste) |

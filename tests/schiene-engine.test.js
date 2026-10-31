@@ -20,4 +20,15 @@ ok(E.solve(E.straight(3000,"left"),{firstSide:"S"}).nodes[0].part==="feedR","ger
 ok(E.solve(E.straight(3000,"left"),{firstSide:"N"}).nodes[0].part==="feedL","gerade, links eingespeist, SL Nord → Einspeiser links");
 // Zuschnitt
 const c=E.cut(5200,3);ok(c.pieces.join()==="3000,3000"&&c.cutTo===2200,"5,20 m aus 2 × 3 m, eine auf 2,20 m gekürzt");
+// Gezeichnete Form (Raster) → Knoten und Schienen
+const segsOf=lines=>{const s=new Set();lines.forEach(([a,b,x,y])=>{if(b===y)for(let i=Math.min(a,x);i<Math.max(a,x);i++)s.add(`${i},${b},h`);else for(let j=Math.min(b,y);j<Math.max(b,y);j++)s.add(`${a},${j},v`)});return s};
+const g1=E.fromSegments(segsOf([[0,0,6,0]]),new Set(["0,0"]),new Set(),500);
+ok(g1.nodes.length===2&&g1.edges.length===1&&g1.edges[0].axis===3000&&g1.edges[0].len===3000-72-6.5,"gezeichnet 3 m gerade: Schiene = Achse − Einspeiser − Endkappe");
+const hx=E.fromSegments(segsOf([[0,0,0,6],[8,0,8,6],[0,3,8,3],[4,0,4,6]]),new Set(["0,0"]),new Set(),500);
+ok(hx.nodes.filter(n=>n.type==="T").length===2&&hx.nodes.filter(n=>n.type==="X").length===1&&hx.edges.length===8,"H mit X: 2 T, 1 X, 8 Schienen");
+ok(E.solve(JSON.parse(JSON.stringify(hx))).ok,"H mit X lösbar");
+const ring=E.fromSegments(segsOf([[0,1,8,1],[8,1,8,6],[8,6,0,6],[0,6,0,1],[4,0,4,3]]),new Set(["4,3"]),new Set(),500);
+ok(!E.solve(JSON.parse(JSON.stringify(ring))).ok,"gezeichneter Rahmen mit X-Stummel: Widerspruch");
+const fr=E.fromSegments(segsOf([[0,0,8,0],[8,0,8,6],[8,6,0,6],[0,6,0,0]]),new Set(),new Set(["4,0,h"]),500);
+ok(fr.edges.some(e=>e.midFeed)&&fr.nodes.every(n=>n.type==="L"),"Rahmen mit Mitteneinspeiser: 4 L");
 process.exit(fail?1:0);
