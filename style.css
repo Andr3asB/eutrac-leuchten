@@ -27,7 +27,7 @@ h2{font-family:var(--display);font-weight:750;font-size:16px;margin:0}
 .group{display:flex;flex-direction:column;gap:3px}
 .group h4{margin:0;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:flex;justify-content:space-between;gap:6px;align-items:center}
 .item{display:grid;grid-template-columns:52px 1fr auto auto;gap:6px;align-items:center;font-size:12.5px}
-.item input{width:48px;padding:2px 4px;font-size:12px}
+.item input[type=number]{width:52px;box-sizing:border-box;padding:2px 4px;font-size:12px}
 .item .p{font-family:var(--mono);color:var(--muted);font-size:12px}
 .sum{font-family:var(--mono);font-size:12px;border-top:1px solid var(--line);padding-top:6px;display:flex;flex-direction:column;gap:2px}
 .sum b{font-family:var(--body);font-size:13px}
