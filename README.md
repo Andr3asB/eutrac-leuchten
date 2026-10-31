@@ -13,6 +13,11 @@ Filterbare Übersicht über Leuchten für EUTRAC-3-Phasen-Stromschienen (SLV, De
 | `merkliste-store.js` | Speichert die Merkliste: lokal im Sitzungs-Cookie oder gemeinsam (verschlüsselt) in Supabase |
 | `config.js` | Zugangsdaten für Supabase (leer = nur lokale Merkliste) |
 | `supabase/schema.sql` | Datenbank-Einrichtung für gemeinsame Listen |
+| `impressum.html`, `datenschutz.html` | Impressum und Datenschutzerklärung |
+| `fonts/`, `fonts.css` | Schriften Archivo und IBM Plex Mono, lokal ausgeliefert (SIL OFL) |
+| `vendor/` | supabase-js 2.117.3 (MIT), lokal ausgeliefert |
+
+Die Seite lädt keine Ressourcen von fremden Servern. Verbindungen zu Supabase entstehen nur bei Nutzung einer gemeinsamen Liste.
 
 ## Merkliste
 
