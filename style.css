@@ -356,3 +356,22 @@ dialog .linkrow input{flex:1;min-width:0;font-size:12.5px}
 .dual input[type=range]:focus-visible::-webkit-slider-thumb{outline:3px solid var(--mark);outline-offset:2px}
 .dual input[type=range]:focus-visible::-moz-range-thumb{outline:3px solid var(--mark);outline-offset:2px}
 .fgroup.ranges{display:flex;flex-direction:column;gap:10px}
+
+/* Bildvorschau */
+.imglink{background:none;border:none;font:inherit;color:inherit;display:inline-flex;align-items:center;min-height:36px;padding:4px 6px;text-decoration:underline;border-radius:6px;cursor:zoom-in}
+.imglink:hover{background:var(--feld)}
+td .imglink{min-height:32px}
+.imgdlg{width:min(560px,calc(100vw - 24px));padding:14px}
+.imgdlg figure{margin:0;display:flex;flex-direction:column;gap:10px}
+.imgbox{background:#fff;border-radius:var(--r-md);aspect-ratio:1/1;display:grid;place-items:center;overflow:hidden;position:relative}
+.imgbox img{width:100%;height:100%;object-fit:contain;display:block}
+.imgload,.imgfail{position:absolute;margin:0;color:#566070;font-size:14px;display:none}
+figure.loading .imgload{display:block}
+figure.loading img{opacity:0}
+figure.failed .imgfail{display:block}
+figure.failed img{display:none}
+.imgdlg figcaption{display:flex;flex-direction:column;gap:2px;font-size:14px}
+.imgdlg figcaption span{color:var(--schiefer);font-size:13px}
+.imgdlg .actions{display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap}
+.imgdlg .actions a{font-size:14px;min-height:32px;display:inline-flex;align-items:center}
+.imgdlg .actions .sp{flex:1}

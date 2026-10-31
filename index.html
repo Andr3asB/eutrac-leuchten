@@ -22,8 +22,8 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <meta name="theme-color" content="#262E3C">
-<link rel="stylesheet" href="fonts.css?v=20261101e">
-<link rel="stylesheet" href="style.css?v=20261101e">
+<link rel="stylesheet" href="fonts.css?v=20261101f">
+<link rel="stylesheet" href="style.css?v=20261101f">
 </head>
 <body>
 <a class="skiplink" href="#leuchten">Zur Leuchtenliste springen</a>
@@ -129,6 +129,14 @@
 
 <footer class="sitefoot"><button type="button" class="linkbtn" id="tourLink">Tour</button><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
 
+<dialog id="imgDlg" class="imgdlg" aria-labelledby="imgCap">
+  <figure class="loading">
+    <div class="imgbox"><img id="imgView" alt="" decoding="async"><p class="imgload">Bild wird geladen …</p><p class="imgfail">Das Bild konnte nicht geladen werden.</p></div>
+    <figcaption id="imgCap"></figcaption>
+  </figure>
+  <div class="actions"><a id="imgDs" href="#" target="_blank" rel="noopener">Datenblatt</a><a id="imgSrc" href="#" target="_blank" rel="noopener">Bild in neuem Tab</a><span class="sp"></span><button type="button" class="btn" id="imgClose">Schließen</button></div>
+</dialog>
+
 <dialog id="pickDlg">
   <form method="dialog" id="pickForm">
     <h3 id="pickTitle">Leuchte merken</h3>
@@ -178,10 +186,10 @@
   </form>
 </dialog>
 
-<script src="config.js?v=20261101e"></script>
-<script src="vendor/supabase-2.117.3.js?v=20261101e"></script>
-<script src="merkliste-store.js?v=20261101e"></script>
-<script src="tour.js?v=20261101e"></script>
-<script src="app.js?v=20261101e"></script>
+<script src="config.js?v=20261101f"></script>
+<script src="vendor/supabase-2.117.3.js?v=20261101f"></script>
+<script src="merkliste-store.js?v=20261101f"></script>
+<script src="tour.js?v=20261101f"></script>
+<script src="app.js?v=20261101f"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 // Leuchtendaten kommen aus leuchten.json, die Merkliste aus einem Sitzungs-Cookie (merkliste-store.js).
 (async()=>{
 let rows;
-try{ rows=await (await fetch("leuchten.json?v=20261101e",{cache:"no-cache"})).json() }
+try{ rows=await (await fetch("leuchten.json?v=20261101f",{cache:"no-cache"})).json() }
 catch(e){ document.getElementById("count").textContent="Leuchtendaten (leuchten.json) konnten nicht geladen werden."; return }
 rows.forEach(r=>{r.type=r.type||"Spot";r.lamp=r.lamp||"LED integriert";r.key=r.brand.replace(/\W/g,"")+"_"+r.art;r.lmw=(r.lm&&r.w&&!r.lmText)?Math.round(r.lm/r.w):null;r.cctSort=r.ccts.length?Math.min(...r.ccts):null});
 
@@ -185,7 +185,9 @@ function beam(r){
     <rect x="-9" y="6" width="18" height="18" rx="3" class="lamp"/>${a2!==a1?cone(a2,.45):""}${cone(a1,1)}</svg>`;
 }
 const priceSrc=r=>r.priceSrc?`<a class="psrc" href="${esc(r.priceUrl||r.ds)}" target="_blank" rel="noopener" title="Preis von ${esc(r.priceSrc)}, Stand ${esc(r.priceDate||"?")}">${esc(r.priceSrc)}${r.priceDate?", "+esc(r.priceDate.split("-").reverse().join("/")):""}</a>`:"";
-const linksHtml=r=>`<span class="links"><a href="${r.ds}" target="_blank" rel="noopener">${r.dsLabel||"Datenblatt"}</a>${r.img!==r.ds?`<a href="${r.img}" target="_blank" rel="noopener">${r.imgLabel||"Bilder"}</a>`:""}${r.shop?`<a href="${r.shop}" target="_blank" rel="noopener">Shop</a>`:""}</span>`;
+const isImg=u=>/\.(jpe?g|png|webp)(\?|$)/i.test(u||"");
+// Direkte Produktbilder öffnen als Vorschaufenster auf der Seite, Bildersuchen weiterhin in neuem Tab
+const linksHtml=r=>`<span class="links"><a href="${r.ds}" target="_blank" rel="noopener">${r.dsLabel||"Datenblatt"}</a>${r.img&&r.img!==r.ds?(isImg(r.img)?`<button type="button" class="imglink" data-img="${esc(r.key)}" aria-haspopup="dialog">${r.imgLabel||"Bild"}</button>`:`<a href="${r.img}" target="_blank" rel="noopener">${r.imgLabel||"Bilder"}</a>`):""}${r.shop?`<a href="${r.shop}" target="_blank" rel="noopener">Shop</a>`:""}</span>`;
 const usedText=(u)=>u.map(a=>{const rm=roomById(a.raum);return `${a.stueck}× ${esc(rm?rm.name:"?")}${a.gruppe?", "+esc(a.gruppe):""}`}).join("; ");
 
 function cardHtml(r,u,an,dis){
@@ -263,6 +265,25 @@ document.getElementById("cards").addEventListener("click",e=>{
   if(e.target.closest("[data-empty-reset]")){document.getElementById("reset").click();return}
   const b=e.target.closest("[data-pick]");if(b)openPick(b);
 });
+
+// Bildvorschau
+const imgDlg=document.getElementById("imgDlg");
+function openImg(key){
+  const r=byKey[key];if(!r)return;
+  const im=document.getElementById("imgView"), fig=imgDlg.querySelector("figure");
+  fig.classList.add("loading");fig.classList.remove("failed");
+  im.onload=()=>fig.classList.remove("loading");
+  im.onerror=()=>{fig.classList.remove("loading");fig.classList.add("failed")};
+  im.alt=`Produktbild ${r.brand} ${r.model}`;im.src=r.img;
+  document.getElementById("imgCap").innerHTML=`<b>${esc(r.brand)} ${esc(r.model)}</b><span>Art.-Nr. ${esc(r.art)} · ${esc(r.cctLabel)} · ${esc(r.angleLabel)} · ${esc(r.color)}</span>`;
+  document.getElementById("imgSrc").href=r.img;
+  document.getElementById("imgDs").href=r.ds;
+  imgDlg.showModal();
+}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-img]");if(b){e.preventDefault();openImg(b.dataset.img)}});
+document.getElementById("imgClose").onclick=()=>imgDlg.close();
+imgDlg.addEventListener("click",e=>{if(e.target===imgDlg)imgDlg.close()});   // Klick neben das Bild schließt
+imgDlg.addEventListener("close",()=>{document.getElementById("imgView").removeAttribute("src")});
 
 // Schubladen am Handy: Filter und Lichtplan
 function openSheet(which){document.body.classList.add("sheet-"+which);const el=document.getElementById(which==="filter"?"filterPanel":"mlPanel");el.setAttribute("tabindex","-1");el.focus({preventScroll:true})}
