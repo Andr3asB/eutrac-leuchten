@@ -480,3 +480,11 @@ figure.failed img{display:none}
 @media (max-width:600px){body.planner .seg button{padding:8px 12px}.drawhead{flex-wrap:wrap;gap:8px}}
 .svgbox .cross{fill:none;stroke:#D7262E;stroke-width:3}
 #drawNote .lx{background:var(--karte);border:2.5px solid var(--ink);width:10px!important;height:10px!important;border-radius:50%!important;box-sizing:border-box}
+.planform{position:static}
+.savebtns{display:flex;flex-wrap:wrap;gap:8px}
+#saveStatus.ok{color:var(--gemerkt)}
+#saveStatus.bad{color:var(--danger);font-weight:600}
+.railitem{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:13.5px}
+.railitem a{color:var(--ink);font-weight:600}
+.railitem .p{color:var(--schiefer);font-size:13px;white-space:nowrap}
+.rails .addrail{align-self:flex-start;padding-left:0}

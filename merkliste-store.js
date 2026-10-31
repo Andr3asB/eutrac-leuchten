@@ -13,7 +13,7 @@
   const hex=bytes=>[...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,"0")).join("");
   const rand=n=>crypto.getRandomValues(new Uint8Array(n));
   const clone=o=>JSON.parse(JSON.stringify(o));
-  const empty=()=>({raeume:{},zuordnung:{}});
+  const empty=()=>({raeume:{},zuordnung:{},schienen:{}});
   const err=(code,msg)=>{const e=new Error(msg||code);e.code=code;return e};
 
   // ---------- Cookie-Speicher (lokal) ----------
@@ -24,17 +24,21 @@
   function readCookies(){const all={};document.cookie.split(/;\s*/).forEach(p=>{const i=p.indexOf("=");if(i>0)all[p.slice(0,i)]=p.slice(i+1)});return all}
   function setCookie(k,v){document.cookie=k+"="+v+"; path="+PATH+"; SameSite=Lax"+SECURE}
   function delCookie(k){document.cookie=k+"=; path="+PATH+"; max-age=0; SameSite=Lax"+SECURE}
-  // Kompaktes Format: {r:[[name,[gruppen]]…], z:[[leuchte,raumIndex,gruppe,stueck]…]}
+  // Kompaktes Format: {r:[[name,[gruppen]]…], z:[[leuchte,raumIndex,gruppe,stueck]…], s:[[raumIndex,name,plan]…]} (s = Schienenpläne)
   function pack(data){
     const ids=Object.entries(data.raeume).sort((a,b)=>(a[1].pos||0)-(b[1].pos||0));
     const idx=Object.fromEntries(ids.map(([id],i)=>[id,i]));
     const z=Object.values(data.zuordnung).filter(a=>a.raum in idx).sort((a,b)=>(a.t||0)-(b.t||0)).map(a=>[a.leuchte,idx[a.raum],a.gruppe||"",a.stueck]);
-    return {r:ids.map(([,v])=>[v.name,v.gruppen||[]]),z};
+    const sp=Object.entries(data.schienen||{}).filter(([,a])=>a.raum in idx).sort((a,b)=>(a[1].t||0)-(b[1].t||0)).map(([id,a])=>[idx[a.raum],a.name||"",a.plan||{},id]);
+    // Raum-IDs mitspeichern, damit Links wie schiene.html?raum=… nach dem Neuladen gültig bleiben
+    const out={r:ids.map(([id,v])=>[v.name,v.gruppen||[],id]),z};if(sp.length)out.s=sp;return out;
   }
   function unpack(p){
     const data=empty();
-    (p.r||[]).forEach(([name,gruppen],i)=>data.raeume["r"+i]={name,gruppen,pos:i});
-    (p.z||[]).forEach(([leuchte,ri,gruppe,stueck],i)=>data.zuordnung["z"+i]={leuchte,raum:"r"+ri,gruppe,stueck,t:i});
+    const rid=(p.r||[]).map(([,,id],i)=>id||"r"+i);
+    (p.r||[]).forEach(([name,gruppen],i)=>data.raeume[rid[i]]={name,gruppen,pos:i});
+    (p.z||[]).forEach(([leuchte,ri,gruppe,stueck],i)=>data.zuordnung["z"+i]={leuchte,raum:rid[ri],gruppe,stueck,t:i});
+    (p.s||[]).forEach(([ri,name,plan,id],i)=>data.schienen[id||"s"+i]={raum:rid[ri],name,plan,t:i});
     return data;
   }
   const toB64=str=>b64u(enc.encode(str)), fromB64=s=>dec.decode(unb64u(s));

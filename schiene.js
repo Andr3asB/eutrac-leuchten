@@ -90,7 +90,8 @@
   }
 
   // ---------- Hauptberechnung ----------
-  function render(){
+  function render(){renderCore();scheduleSave()}
+  function renderCore(){
     const draw=st.shape==="draw";
     document.querySelectorAll(".straightonly").forEach(el=>el.hidden=draw);
     document.querySelectorAll(".drawonly").forEach(el=>el.hidden=!draw);
@@ -278,7 +279,114 @@
     render();
   }
 
+
+  // ---------- Speichern im Lichtplan (Merkliste: lokal im Browser oder gemeinsame Liste per Link) ----------
+  const S=window.MerklisteStore, qs=new URLSearchParams(location.search);
+  let db=null, rooms=[], plans=[], cur=null, lastSaved="", saveT=null, initDone=false, applying=false, wantRoom=qs.get("raum")||"";
+  const setStatus=(t,cls="")=>{const el=$("saveStatus");el.textContent=t;el.className="fine"+(cls?" "+cls:"")};
+  const where=()=>db&&db.mode==="shared"?"in der gemeinsamen Liste":"in der Merkliste dieses Browsers";
+  function toPlan(){
+    const o={maxLen:$("maxLen").value,color:$("color").value,mount:$("mount").value,spacing:$("spacing").value};
+    const hv=Object.keys(st.have).filter(k=>st.have[k]);
+    if(st.shape!=="draw")return {m:"s",len:Math.round((num($("len").value)||0)*1000),feed:st.feed,side:st.side,o,hv};
+    return {m:"d",st:+$("gridStep").value,l:E.segsToLines(st.segs,st.diags),fx:[...st.flex].map(p=>p.split(",").map(Number)),
+      fd:[...st.feeds].map(p=>p.split(",").map(Number)),md:[...st.mids],a:[num($("areaW").value)||6,num($("areaH").value)||4],o,hv};
+  }
+  const keyNow=()=>JSON.stringify([toPlan(),$("planName").value.trim(),$("planRoom").value]);
+  function applyPlan(p){
+    applying=true;
+    const o=p.o||{};["maxLen","color","mount","spacing"].forEach(k=>{if(o[k]!=null)$(k).value=String(o[k])});
+    st.have={};(p.hv||[]).forEach(k=>st.have[k]=true);
+    st.shape=p.m==="s"?"straight":"draw";
+    document.querySelectorAll("[data-shape]").forEach(x=>x.setAttribute("aria-checked",x.dataset.shape===st.shape));
+    if(p.m==="s"){$("len").value=String((p.len||3000)/1000).replace(".",",");st.feed=p.feed||"left";st.side=p.side||"S";$("haveFeed").value="";
+      document.querySelectorAll("[data-feed]").forEach(x=>x.setAttribute("aria-checked",x.dataset.feed===st.feed))}
+    else{const g=E.planSegs(p);st.segs=g.segs;st.diags=g.diags;st.flex=g.flex;st.feeds=g.feeds;st.mids=g.mids;st.step=p.st||500;$("gridStep").value=String(st.step);
+      if(p.a){$("areaW").value=String(p.a[0]).replace(".",",");$("areaH").value=String(p.a[1]).replace(".",",")}}
+    st.undo=[];applying=false;
+  }
+  function openPlan(id){
+    const p=plans.find(x=>x.id===id);if(!p)return false;
+    cur=id;wantRoom=p.raum;applyPlan(p.plan||{});$("planName").value=p.name||"Schiene";renderSaveBox();
+    lastSaved=keyNow();renderCore();
+    history.replaceState(null,"","?plan="+encodeURIComponent(id)+location.hash);
+    setStatus(`Gespeichert ${where()}, Raum „${(rooms.find(r=>r.id===p.raum)||{}).name||"?"}“. Änderungen werden automatisch gespeichert.`,"ok");
+    return true;
+  }
+  function scheduleSave(){
+    if(!cur||applying||!db)return;
+    const key=keyNow();if(key===lastSaved)return;
+    clearTimeout(saveT);saveT=setTimeout(async()=>{saveT=null;const [plan,name,raum]=JSON.parse(key),prev=lastSaved;
+      if(!raum){setStatus("Bitte einen Raum wählen.","bad");return}
+      lastSaved=key;
+      try{await db.doc("schienen/"+cur).update({plan,name:name||"Schiene",raum});
+        setStatus(`Gespeichert ${where()} um ${new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}.`,"ok")}
+      catch(e){lastSaved=prev;setStatus(e&&e.message&&["too_large","conflict","forbidden","not_found","network"].includes(e.code)?e.message:"Speichern fehlgeschlagen.","bad")}},600);
+  }
+  function renderSaveBox(){
+    const sel=$("planRoom"),val=cur?(plans.find(p=>p.id===cur)||{}).raum||sel.value:(wantRoom||sel.value);
+    sel.innerHTML=`<option value="">Raum wählen …</option>`+rooms.map(r=>`<option value="${esc(r.id)}">${esc(r.name)}</option>`).join("")+`<option value="__new">+ Neuer Raum …</option>`;
+    sel.value=rooms.some(r=>r.id===val)?val:"";
+    $("planSave").hidden=!!cur;$("planNew").hidden=$("planDel").hidden=!cur;
+    const op=$("planOpen");$("planOpenRow").hidden=!plans.length;
+    op.innerHTML=`<option value="">${plans.length} ${plans.length===1?"Plan":"Pläne"} – öffnen …</option>`+rooms.map(r=>{const ps=plans.filter(p=>p.raum===r.id);
+      return ps.length?`<optgroup label="${esc(r.name)}">${ps.map(p=>`<option value="${esc(p.id)}"${p.id===cur?" disabled":""}>${esc(p.name||"Schiene")}${p.id===cur?" (geöffnet)":""}</option>`).join("")}</optgroup>`:""}).join("");
+  }
+  const slug=s=>s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"raum";
+  $("planRoom").addEventListener("change",async e=>{
+    if(e.target.value==="__new"){const name=(prompt("Name des neuen Raums")||"").trim();
+      if(!name){renderSaveBox();return}
+      const id=slug(name)+"-"+Date.now().toString(36);
+      try{await db.doc("raeume/"+id).set({name,gruppen:["Decke"],pos:Date.now()});wantRoom=id;renderSaveBox();$("planRoom").value=id}
+      catch(err){setStatus(err.message||"Raum konnte nicht angelegt werden.","bad");renderSaveBox();return}}
+    wantRoom=$("planRoom").value;scheduleSave()});
+  $("planName").addEventListener("input",scheduleSave);
+  $("planSave").onclick=async()=>{
+    const raum=$("planRoom").value;if(!raum){setStatus("Bitte zuerst einen Raum wählen oder anlegen.","bad");$("planRoom").focus();return}
+    const id="s"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),plan=toPlan(),name=$("planName").value.trim()||"Schiene";
+    try{await db.doc("schienen/"+id).set({raum,name,plan,t:Date.now()});cur=id;lastSaved=keyNow();renderSaveBox();
+      history.replaceState(null,"","?plan="+id+location.hash);
+      setStatus(`Gespeichert ${where()}, Raum „${rooms.find(r=>r.id===raum).name}“. Ab jetzt wird jede Änderung automatisch gespeichert.`,"ok")}
+    catch(e){setStatus(e.message||"Speichern fehlgeschlagen.","bad")}};
+  $("planNew").onclick=()=>{cur=null;lastSaved="";history.replaceState(null,"",location.pathname+location.hash);
+    const n=plans.filter(p=>p.raum===$("planRoom").value).length+1;$("planName").value="Schiene "+n;
+    snapshot();st.segs.clear();st.diags.clear();st.flex.clear();st.feeds.clear();st.mids.clear();st.have={};
+    renderSaveBox();render();setStatus("Neuer Plan – noch nicht gespeichert.")};
+  $("planDel").onclick=async()=>{if(!cur||!confirm(`Plan „${$("planName").value}“ aus dem Lichtplan löschen? Die Zeichnung bleibt hier stehen, bis du die Seite verlässt.`))return;
+    try{await db.doc("schienen/"+cur).delete();cur=null;lastSaved="";history.replaceState(null,"",location.pathname+location.hash);renderSaveBox();setStatus("Plan gelöscht.")}
+    catch(e){setStatus(e.message||"Löschen fehlgeschlagen.","bad")}};
+  $("planOpen").addEventListener("change",e=>{const id=e.target.value;if(id){clearTimeout(saveT);openPlan(id);render()}});
+
+  function askPassword(wrong){return new Promise(resolve=>{
+    const dlg=$("pwDlg"),inp=$("pwInput"),f=$("pwForm");inp.value="";$("pwErr").hidden=!wrong;
+    const finish=v=>{f.onsubmit=null;$("pwCancel").onclick=null;dlg.close();resolve(v)};
+    f.onsubmit=e=>{e.preventDefault();finish(inp.value)};$("pwCancel").onclick=()=>finish(null);
+    dlg.oncancel=e=>{e.preventDefault();finish(null)};dlg.showModal();inp.focus()})}
+  async function openStore(){
+    if(!S){$("saveBox").hidden=true;return}
+    let link=S.parseLink(location.hash);if(!link){const rem=S.rememberedShared();link=rem&&S.parseLink(rem)}
+    if(link&&S.configured()){setStatus("Gemeinsame Liste wird geöffnet …");
+      try{db=await S.openShared(link,askPassword)}
+      catch(e){db=S.openLocal();setStatus("Die gemeinsame Liste konnte nicht geöffnet werden. Gespeichert wird in der Merkliste dieses Browsers.","bad")}}
+    else db=S.openLocal();
+    if(db.mode==="shared"&&$("saveStatus").textContent.endsWith("…"))setStatus("Gemeinsame Liste geöffnet. Gespeicherte Pläne sehen alle, die den Link haben.");
+    if(db.mode==="local"&&!db.persistent)setStatus("Cookies sind blockiert: Pläne bleiben nur bis zum Neuladen erhalten.","bad");
+    db.collection("raeume").onSnapshot(sn=>{rooms=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.pos||0)-(b.pos||0));renderSaveBox()});
+    db.collection("schienen").onSnapshot(sn=>{plans=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.t||0)-(b.t||0));
+      if(!initDone){initDone=true;const id=qs.get("plan");
+        if(id&&!openPlan(id))setStatus("Dieser Schienenplan ist in der geöffneten Merkliste nicht (mehr) vorhanden.","bad");
+        else if(!id&&wantRoom){const n=plans.filter(p=>p.raum===wantRoom).length+1;$("planName").value="Schiene "+n;
+          st.shape="draw";document.querySelectorAll("[data-shape]").forEach(x=>x.setAttribute("aria-checked",x.dataset.shape==="draw"));renderCore()}}
+      else if(cur){const p=plans.find(x=>x.id===cur);
+        if(!p){cur=null;lastSaved="";history.replaceState(null,"",location.pathname+location.hash);setStatus("Dieser Plan wurde inzwischen gelöscht. Die Zeichnung bleibt hier, ist aber nicht mehr gespeichert.","bad")}
+        else{const k=JSON.stringify([p.plan,p.name,p.raum]);
+          if(k!==lastSaved&&!saveT){applyPlan(p.plan||{});$("planName").value=p.name||"Schiene";wantRoom=p.raum;renderSaveBox();lastSaved=keyNow();renderCore();
+            setStatus("Von jemand anderem geändert – Ansicht aktualisiert.","ok")}}}
+      renderSaveBox()});
+    if(db.onRemoteChange)db.onRemoteChange(e=>{if(e&&e.code==="not_found")setStatus("Die gemeinsame Liste wurde gelöscht.","bad")});
+  }
   function layoutNow(step){return E.fromSegments(st.segs,st.feeds,st.mids,step,{diags:st.diags,flex:st.flex})}
   let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(st.shape==="draw")render()},150)});
   render();
+  openStore();
 })();

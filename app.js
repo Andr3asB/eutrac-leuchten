@@ -16,7 +16,7 @@ const COLS=[
 ];
 const CCT_COLOR={2700:"#FFB04A",3000:"#FFD385",4000:"#FFF1D2"};
 const state={type:new Set(),lamp:new Set(),brand:new Set(),cct:new Set(),angle:new Set(),color:new Set(),dim:new Set(),ex:{},sort:"lm",dir:-1,view:"cards"};
-let rooms=[]; let assigns=[]; let db=null; let canWrite=true; let dbReady=false;
+let rooms=[]; let assigns=[]; let rails=[]; let db=null; let canWrite=true; let dbReady=false;
 
 const CHIPS=[];  // alle Filterknöpfe der Seitenleiste, damit sie mit dem Vergleichsfeld synchron bleiben
 function syncChips(){CHIPS.forEach(([b,key,v])=>b.setAttribute("aria-pressed",state[key].has(v)))}
@@ -300,7 +300,7 @@ function updatePlanSummary(){
   const n=items.reduce((s,a)=>s+a.stueck,0), w=items.reduce((s,a)=>s+(byKey[a.leuchte].w||0)*a.stueck,0);
   const eur=items.reduce((s,a)=>s+(byKey[a.leuchte].price||0)*a.stueck,0), noPrice=items.filter(a=>byKey[a.leuchte].price==null).length;
   const tot=document.getElementById("planTotal");
-  tot.hidden=!n; document.getElementById("printBtn").hidden=!n;
+  tot.hidden=!n; document.getElementById("printBtn").hidden=!n&&!rails.some(p=>roomById(p.raum));
   tot.innerHTML=n?`<span>${n} ${n===1?"Leuchte":"Leuchten"}, ${w.toLocaleString("de-DE",{maximumFractionDigits:1})} W${noPrice?`, ${noPrice}× ohne Preis`:""}</span><b>ab ${Math.round(eur).toLocaleString("de-DE")} €</b>`:"";
   document.getElementById("mbarTitle").textContent=n?`Lichtplan: ${n} ${n===1?"Leuchte":"Leuchten"}`:"Lichtplan";
   document.getElementById("mbarSub").textContent=n?`${rooms.length} ${rooms.length===1?"Raum":"Räume"}, ab ${Math.round(eur).toLocaleString("de-DE")} €`:rooms.length?`${rooms.length} ${rooms.length===1?"Raum":"Räume"}, noch nichts gemerkt`:"noch leer";
@@ -309,13 +309,14 @@ function updatePlanSummary(){
 function buildPrint(){
   const items=assigns.filter(a=>byKey[a.leuchte]&&roomById(a.raum));
   const el=document.getElementById("printPlan");
-  if(!items.length){el.innerHTML="";return}
+  const rplans=rails.filter(p=>roomById(p.raum)).map(p=>({...p,ev:railEval(p)}));
+  if(!items.length&&!rplans.length){el.innerHTML="";return}
   const eur=v=>v==null?"–":v.toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";
   const byArt=new Map();items.forEach(a=>{const e=byArt.get(a.leuchte)||{r:byKey[a.leuchte],n:0};e.n+=a.stueck;byArt.set(a.leuchte,e)});
   const arts=[...byArt.values()].sort((x,y)=>x.r.brand.localeCompare(y.r.brand)||x.r.model.localeCompare(y.r.model,"de"));
   const total=arts.reduce((s,e)=>s+(e.r.price||0)*e.n,0), totalW=arts.reduce((s,e)=>s+(e.r.w||0)*e.n,0), nTot=arts.reduce((s,e)=>s+e.n,0), noPrice=arts.filter(e=>e.r.price==null).length;
   const today=new Date().toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"});
-  let h=`<header><h1>Lichtplan</h1><p>Leuchten für EUTRAC-3-Phasen-Schienen · Stand ${today} · ${nTot} Leuchten in ${rooms.length} ${rooms.length===1?"Raum":"Räumen"}</p></header>
+  let h=`<header><h1>Lichtplan</h1><p>Leuchten für EUTRAC-3-Phasen-Schienen · Stand ${today} · ${nTot?`${nTot} Leuchten in ${rooms.length} ${rooms.length===1?"Raum":"Räumen"}`:"Schienenpläne"}</p></header>
   <h2>Bestellliste</h2>
   <table><thead><tr><th class="n">Stück</th><th>Art.-Nr.</th><th>Leuchte</th><th>Lichtfarbe</th><th>Winkel</th><th class="n">Watt</th><th class="n">Lumen</th><th>Dimmung</th><th class="n">Einzelpreis ab</th><th class="n">Summe ab</th></tr></thead><tbody>
   ${arts.map(({r,n})=>`<tr><td class="n"><b>${n}</b></td><td>${esc(r.art)}</td><td><b>${esc(r.brand)}</b> ${esc(r.model)}</td><td>${esc(r.cctLabel)}</td><td>${esc(r.angleLabel)}</td><td class="n">${fmt(r.w)}</td><td class="n">${ATTR.lm.show(r).replace(/ lm$/,"")}</td><td>${esc(r.dim)}</td><td class="n">${eur(r.price)}</td><td class="n">${r.price==null?"–":eur(r.price*n)}</td></tr>`).join("")}
@@ -324,6 +325,13 @@ function buildPrint(){
   rooms.forEach(rm=>{const its=items.filter(a=>a.raum===rm.id);if(!its.length)return;
     const groups=[...new Set(its.map(a=>a.gruppe||""))];
     h+=`<section class="proom"><h3>${esc(rm.name)}</h3>`+groups.map(g=>`<h4>${g?esc(g):"ohne Verwendung"}</h4><ul>${its.filter(a=>(a.gruppe||"")===g).map(a=>{const r=byKey[a.leuchte];return `<li><b>${a.stueck}×</b> ${esc(r.brand)} ${esc(r.model)}, ${esc(r.cctLabel)}, ${esc(r.angleLabel)}, ${esc(r.color)} <span>Art.-Nr. ${esc(r.art)}</span></li>`}).join("")}</ul>`).join("")+`</section>`});
+  if(!items.length)h=h.slice(0,h.indexOf("<h2>Bestellliste</h2>"));
+  if(rplans.length){
+    const sum=new Map();rplans.filter(p=>p.ev.ok).forEach(p=>p.ev.bill.items.forEach(i=>{const e=sum.get(i.eutrac)||{...i,qty:0};e.qty+=i.qty;sum.set(i.eutrac,e)}));
+    const tbl=its=>`<table><thead><tr><th class="n">Stück</th><th>Teil</th><th>EUTRAC</th><th>SLV</th></tr></thead><tbody>${its.map(i=>`<tr><td class="n"><b>${i.qty}</b></td><td>${esc(i.name)}</td><td>${esc(i.eutrac)}</td><td>${esc(i.slv||"–")}</td></tr>`).join("")}</tbody></table>`;
+    h+=`<h2>Schienen (EUTRAC 3~ Aufbauschiene)</h2>${sum.size?tbl([...sum.values()]):""}`;
+    rplans.forEach(p=>{h+=`<section class="proom"><h3>${esc(roomById(p.raum).name)}: ${esc(p.name||"Schiene")}</h3>${p.ev.ok?`<p>Schiene gesamt ${railLen(p.ev.totalLen)}</p>${tbl(p.ev.bill.items)}`:`<p>Plan unvollständig: ${esc((p.ev.errors||[]).join(" "))}</p>`}</section>`});
+  }
   h+=`<p class="pnote">„ab“-Preise aus Onlineshops, nicht tagesaktuell. Dimmung laut Datenblatt; vor dem Kauf eine Leuchte am eigenen Dimmer bzw. KNX-Aktor testen. Erstellt mit ${esc(location.origin+location.pathname)}</p>`;
   el.innerHTML=h;
 }
@@ -347,11 +355,22 @@ function renderRooms(){
     const del=confirmDel===rm.id?`<button class="btn danger" type="button" data-del-room="${rm.id}"${dis}>Wirklich löschen?</button>`:`<button class="btn link" type="button" data-ask-del="${rm.id}"${dis}>Löschen</button>`;
     return `<div class="room"><div class="roomhead">${nameHtml}<span class="tools"><button class="btn link" type="button" data-rename="${rm.id}"${dis}>${editing===rm.id?"Fertig":"Umbenennen"}</button>${del}</span></div>
       ${groups.map(gHtml).join("")}${ungrouped.length?`<div class="group"><h4><span>ohne Verwendung</span></h4>${ungrouped.map(itemHtml).join("")}</div>`:""}
+      ${railsHtml(rm.id)}
       <div class="tools"><input type="text" placeholder="Neue Verwendung" id="ng-${rm.id}" aria-label="Neue Verwendung für ${esc(rm.name)}"${dis}><button class="btn" type="button" data-add-group="${rm.id}"${dis}>+ Verwendung</button></div>
       <div class="sum">${n?`<b>ab ca. ${eur.toLocaleString("de-DE")} €</b><span>${n} Stk. · ${w.toLocaleString("de-DE",{maximumFractionDigits:1})} W · ${lm.toLocaleString("de-DE")} lm${noPrice?` · ${noPrice} Stk. ohne Preis`:""}</span>`:`<span>Noch keine Leuchten gemerkt.</span>`}</div></div>`}).join("");
   if(editing){const i=document.getElementById("ren-"+editing);if(i){i.focus();i.select()}}
 }
 
+// Schienenpläne je Raum (gespeichert im Schienenplaner, ausgewertet mit schiene-engine.js)
+const railEval=p=>{try{return window.SchienenEngine?window.SchienenEngine.evaluate(p.plan||{}):{ok:false,errors:[]}}catch(e){return {ok:false,errors:[]}}};
+const railLen=mm=>(mm/1000).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2})+" m";
+const shareHash=()=>db&&db.mode==="shared"?location.hash:"";
+function railsHtml(roomId){
+  const rs=rails.filter(p=>p.raum===roomId);
+  return `<div class="group rails"><h4><span>Schienen</span></h4>${rs.map(p=>{const ev=railEval(p),n=ev.ok?ev.bill.items.filter(i=>!/^(stoss|pendelclip|rod|rope|deckenclip)/.test(i.key)).reduce((s,i)=>s+i.qty,0):0;
+    return `<div class="railitem"><a href="schiene.html?plan=${encodeURIComponent(p.id)}${shareHash()}">${esc(p.name||"Schiene")}</a><span class="p">${ev.ok?`${railLen(ev.totalLen)} · ${n} Teile`:"unvollständig"}</span></div>`}).join("")}
+    <a class="btn link addrail" href="schiene.html?raum=${encodeURIComponent(roomId)}${shareHash()}">+ Schiene planen</a></div>`;
+}
 async function safe(fn,msg){try{await fn()}catch(err){if(err&&err.code==="invalid_argument"){canWrite=false;status("Nur Ansicht: Du kannst die Merkliste nicht ändern. Bitte Bearbeitungsrecht beim Besitzer anfragen.");render();renderRooms()}else status(err&&["too_large","conflict","forbidden","not_found","network"].includes(err.code)?err.message:msg)}}
 const slug=s=>s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"raum";
 
@@ -370,7 +389,7 @@ document.getElementById("rooms").addEventListener("click",async e=>{
     else{editing=id;renderRooms()}}
   else if(t.dataset.askDel){confirmDel=t.dataset.askDel;renderRooms();setTimeout(()=>{if(confirmDel){confirmDel=null;renderRooms()}},4000)}
   else if(t.dataset.delRoom){const id=t.dataset.delRoom;confirmDel=null;
-    await safe(async()=>{for(const a of assigns.filter(a=>a.raum===id))await db.doc("zuordnung/"+a.id).delete();await db.doc("raeume/"+id).delete()},"Löschen fehlgeschlagen.")}
+    await safe(async()=>{for(const a of assigns.filter(a=>a.raum===id))await db.doc("zuordnung/"+a.id).delete();for(const p of rails.filter(p=>p.raum===id))await db.doc("schienen/"+p.id).delete();await db.doc("raeume/"+id).delete()},"Löschen fehlgeschlagen.")}
   else if(t.dataset.delAssign){await safe(()=>db.doc("zuordnung/"+t.dataset.delAssign).delete(),"Entfernen fehlgeschlagen.")}
   else if(t.dataset.addGroup){const id=t.dataset.addGroup,inp=document.getElementById("ng-"+id),g=inp.value.trim();if(!g)return;
     const rm=roomById(id);inp.value="";if((rm.gruppen||[]).includes(g))return;
@@ -455,11 +474,12 @@ function readyText(){
 }
 function attach(store){
   unsub.forEach(f=>f());unsub=[];if(db&&db.close&&db!==store)db.close();
-  db=store;dbReady=false;rooms=[];assigns=[];editing=null;confirmDel=null;
+  db=store;dbReady=false;rooms=[];assigns=[];rails=[];editing=null;confirmDel=null;
   let gotRooms=false,gotAssigns=false;
   const done=()=>{if(gotRooms&&gotAssigns&&!dbReady){dbReady=true;status((notice?notice+" ":"")+readyText());notice="";render();renderRooms();maybeTour()}};
   unsub.push(db.collection("raeume").onSnapshot(s=>{rooms=s.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.pos||0)-(b.pos||0));gotRooms=true;done();render();renderRooms()}));
   unsub.push(db.collection("zuordnung").onSnapshot(s=>{assigns=s.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()})).filter(a=>a.leuchte&&a.raum).map(a=>({...a,stueck:+a.stueck||1}));gotAssigns=true;done();render();renderRooms()}));
+  unsub.push(db.collection("schienen").onSnapshot(s=>{rails=s.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()})).filter(p=>p.raum).sort((a,b)=>(a.t||0)-(b.t||0));renderRooms()}));
   if(db.onRemoteChange)db.onRemoteChange(e=>{if(e&&e.code==="not_found"){goLocal("Die gemeinsame Liste wurde gelöscht.")}else if(dbReady)status("Aktualisiert: "+new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+" · "+readyText())});
   renderShareBar();render();renderRooms();
 }

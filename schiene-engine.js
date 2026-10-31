@@ -271,5 +271,39 @@
         if(d1*d2<0&&d3*d4<0){crossings.push(`${(x0+x1)/2},${(y0+y1)/2}`);break}}}
     return {nodes,edges,crossings};
   }
-  window.SchienenEngine={COLORS,PARTS,partNo,solve,bill,cut,straight,sideOf,RIGHT,fromSegments,DEDUCT};
+  // ---------- Gespeicherter Plan (kompakt, für Merkliste und Link) ----------
+  // {m:"s"|"d", len, feed, side, st:Raster mm, l:[[x0,y0,x1,y1]…], fx:[[x,y]], fd:[[x,y]], md:[["x,y,h"|"x0,y0,x1,y1"]], a:[w,h], o:{maxLen,color,mount,spacing}, hv:[teil…]}
+  function planSegs(plan){
+    const segs=new Set(),diags=new Set();
+    (plan.l||[]).forEach(([x0,y0,x1,y1])=>{
+      if(y0===y1)for(let x=Math.min(x0,x1);x<Math.max(x0,x1);x++)segs.add(`${x},${y0},h`);
+      else if(x0===x1)for(let y=Math.min(y0,y1);y<Math.max(y0,y1);y++)segs.add(`${x0},${y},v`);
+      else diags.add(x0<x1?`${x0},${y0},${x1},${y1}`:`${x1},${y1},${x0},${y0}`)});
+    const S=a=>new Set((a||[]).map(v=>Array.isArray(v)?v.join(","):String(v)));
+    return {segs,diags,flex:S(plan.fx),feeds:S(plan.fd),mids:S(plan.md)};
+  }
+  // Einheitsstrecken zu möglichst langen Linien zusammenfassen
+  function segsToLines(segs,diags){
+    const H={},V={},out=[];
+    for(const s of segs){const [x,y,o]=s.split(",");(o==="h"?(H[y]=H[y]||[]):(V[x]=V[x]||[])).push(o==="h"?+x:+y)}
+    const runs=(arr,f)=>{arr.sort((a,b)=>a-b);let st=arr[0],pr=arr[0];for(let i=1;i<=arr.length;i++){if(arr[i]===pr+1){pr=arr[i];continue}f(st,pr+1);st=pr=arr[i]}};
+    Object.entries(H).forEach(([y,xs])=>runs(xs,(a,b)=>out.push([a,+y,b,+y])));
+    Object.entries(V).forEach(([x,ys])=>runs(ys,(a,b)=>out.push([+x,a,+x,b])));
+    for(const d of diags||[])out.push(d.split(",").map(Number));
+    return out;
+  }
+  function optsOf(plan){const o=plan.o||{};return {color:o.color||"weiss",maxM:+o.maxLen||3,mount:o.mount||"direct",spacing:+o.spacing||1000}}
+  // Plan auswerten: Stückliste und Gesamtlänge, oder Fehler
+  function evaluate(plan){
+    let layout,solved;
+    if(plan.m==="s"){if(!(plan.len>=300))return {ok:false,errors:["Keine gültige Länge."]};layout=straight(plan.len,plan.feed||"left");solved=solve(layout,{firstSide:plan.side})}
+    else{const g=planSegs(plan);if(!g.segs.size&&!g.diags.size)return {ok:false,errors:["Noch nichts gezeichnet."]};
+      layout=fromSegments(g.segs,g.feeds,g.mids,plan.st||500,{diags:g.diags,flex:g.flex});
+      if(layout.crossings.length)return {ok:false,errors:["Eine schräge Schiene kreuzt eine andere Schiene."]};
+      solved=solve(JSON.parse(JSON.stringify(layout)))}
+    if(!solved.ok)return {ok:false,errors:solved.errors};
+    const b=bill(layout,solved,optsOf(plan));
+    return {ok:true,bill:b,totalLen:b.totalLen,feeds:solved.nodes.filter(n=>n.type==="feed").length+solved.edges.filter(e=>e.midFeed).length};
+  }
+  window.SchienenEngine={COLORS,PARTS,partNo,solve,bill,cut,straight,sideOf,RIGHT,fromSegments,DEDUCT,planSegs,segsToLines,evaluate};
 })();

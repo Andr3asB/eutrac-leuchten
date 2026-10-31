@@ -9,8 +9,8 @@
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="theme-color" content="#262E3C">
-<link rel="stylesheet" href="fonts.css?v=20261101k">
-<link rel="stylesheet" href="style.css?v=20261101k">
+<link rel="stylesheet" href="fonts.css?v=20261101l">
+<link rel="stylesheet" href="style.css?v=20261101l">
 </head>
 <body class="planner">
 <a class="skiplink" href="#planOut">Zur Stückliste springen</a>
@@ -26,6 +26,22 @@
 
 <div class="planlayout">
   <form class="planform" id="planForm" aria-label="Schiene planen" onsubmit="return false">
+    <fieldset id="saveBox">
+      <legend>Im Lichtplan speichern</legend>
+      <div class="f"><label for="planRoom">Raum</label>
+        <select id="planRoom"></select></div>
+      <div class="f"><label for="planName">Name des Plans</label>
+        <input type="text" id="planName" value="Schiene 1" autocomplete="off" maxlength="60"></div>
+      <div class="savebtns">
+        <button type="button" class="primary" id="planSave">Im Raum speichern</button>
+        <button type="button" class="ghost" id="planNew" hidden>Neuer Plan</button>
+        <button type="button" class="ghost" id="planDel" hidden>Plan löschen</button>
+      </div>
+      <div class="f" id="planOpenRow" hidden><label for="planOpen">Gespeicherte Pläne</label>
+        <select id="planOpen"></select></div>
+      <p class="fine" id="saveStatus" aria-live="polite"></p>
+    </fieldset>
+
     <fieldset>
       <legend>Form</legend>
       <div class="chips" role="radiogroup" aria-label="Form">
@@ -126,7 +142,20 @@
 
 <footer class="sitefoot"><a href="./">Leuchtenliste</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
 
-<script src="schiene-engine.js?v=20261101k"></script>
-<script src="schiene.js?v=20261101k"></script>
+<dialog id="pwDlg">
+  <form id="pwForm">
+    <h3>Passwort für die gemeinsame Liste</h3>
+    <p>Diese Merkliste ist mit einem Passwort geschützt.</p>
+    <div class="f"><label for="pwInput">Passwort</label><input type="password" id="pwInput" autocomplete="current-password"></div>
+    <p id="pwErr" class="err" hidden>Passwort falsch. Bitte erneut versuchen.</p>
+    <div class="actions"><button class="btn" type="button" id="pwCancel">Abbrechen</button><button class="btn primary" type="submit">Öffnen</button></div>
+  </form>
+</dialog>
+
+<script src="config.js?v=20261101l"></script>
+<script src="vendor/supabase-2.117.3.js?v=20261101l"></script>
+<script src="merkliste-store.js?v=20261101l"></script>
+<script src="schiene-engine.js?v=20261101l"></script>
+<script src="schiene.js?v=20261101l"></script>
 </body>
 </html>
