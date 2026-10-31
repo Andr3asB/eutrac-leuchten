@@ -1,7 +1,7 @@
 // Leuchtendaten kommen aus leuchten.json, die Merkliste aus einem Sitzungs-Cookie (merkliste-store.js).
 (async()=>{
 let rows;
-try{ rows=await (await fetch("leuchten.json?v=20261031d",{cache:"no-cache"})).json() }
+try{ rows=await (await fetch("leuchten.json?v=20261031e",{cache:"no-cache"})).json() }
 catch(e){ document.getElementById("count").textContent="Leuchtendaten (leuchten.json) konnten nicht geladen werden."; return }
 rows.forEach(r=>{r.type=r.type||"Spot";r.lamp=r.lamp||"LED integriert";r.key=r.brand.replace(/\W/g,"")+"_"+r.art;r.lmw=(r.lm&&r.w&&!r.lmText)?Math.round(r.lm/r.w):null;r.cctSort=r.ccts.length?Math.min(...r.ccts):null});
 
@@ -267,7 +267,7 @@ let tourChecked=false;
 const TOUR_PATH=location.pathname.replace(/[^/]*$/,"")||"/";
 const tourSeen=()=>/(?:^|;\s*)merkliste_(?:n|tour)=/.test(document.cookie);
 const markTourSeen=()=>{try{document.cookie="merkliste_tour=1; path="+TOUR_PATH+"; SameSite=Lax"+(location.protocol==="https:"?"; Secure":"")}catch(e){}};
-document.getElementById("tourLink").onclick=()=>window.Tour&&window.Tour.start(markTourSeen);
+["tourLink","tourBtn"].forEach(id=>{const el=document.getElementById(id);if(el)el.onclick=()=>window.Tour&&window.Tour.start(markTourSeen)});
 function maybeTour(){
   if(!window.Tour||tourSeen()||tourChecked)return; tourChecked=true;
   const tryStart=()=>{if(document.querySelector("dialog[open]")){setTimeout(tryStart,800);return}window.Tour.start(markTourSeen)};

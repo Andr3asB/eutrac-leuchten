@@ -12,7 +12,7 @@
     {sel:"#rows [data-pick]",title:"Merken",text:"Damit ordnest du eine Leuchte einem Raum, einer Verwendung und einer Stückzahl zu. Eine Leuchte kann in mehreren Räumen stehen."},
     {sel:"#rows .links",title:"Details",text:"Hier findest du Datenblatt, Bilder und Shop. Steht unter dem Preis ein Shop mit Monat, wurde der Preis dort abgelesen."},
     {sel:".notes",title:"Hinweise",text:"Hier wird erklärt, was „Abschnitt“ und „An-/Abschnitt“ bei der Dimmung bedeuten und woher die Daten stammen. Teste vor dem Kauf eine Leuchte am eigenen Dimmer oder KNX-Aktor."},
-    {sel:"#tourLink",title:"Fertig!",text:"Über „Tour“ hier unten kannst du die Einführung jederzeit erneut starten. Viel Erfolg bei der Planung!"}
+    {sel:"#tourBtn",title:"Fertig!",text:"Über „Tour“ oben rechts kannst du die Einführung jederzeit erneut starten, ebenso über den Link unten auf der Seite. Viel Erfolg bei der Planung!"}
   ];
   const visible=el=>{if(!el)return false;const r=el.getBoundingClientRect();return r.width>0&&r.height>0&&getComputedStyle(el).visibility!=="hidden"};
   let i=0, steps=[], root, hole, card, onDone=null, prevFocus=null;
@@ -66,7 +66,10 @@
     if(!root)return;
     removeEventListener("resize",place);removeEventListener("scroll",place,true);document.removeEventListener("keydown",onKey,true);
     root.remove();root=null;document.documentElement.classList.remove("touring");
-    if(prevFocus&&prevFocus.focus)prevFocus.focus();
+    // Nach der Tour an den Seitenanfang, Fokus auf den Tour-Knopf (ohne erneut zu scrollen)
+    window.scrollTo({top:0,behavior:"instant"});
+    const tb=document.getElementById("tourBtn");
+    if(tb)tb.focus({preventScroll:true});else if(prevFocus&&prevFocus.focus)prevFocus.focus({preventScroll:true});
     onDone&&onDone();
   }
   function start(done){

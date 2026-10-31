@@ -123,3 +123,5 @@ dialog input[type=password]{width:100%;box-sizing:border-box}
 .tour-dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
 .tour-dots i.on{background:var(--accent)}
 @media (prefers-reduced-motion:reduce){.tour-hole,.tour-card{transition:none}}
+.titlerow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tourbtn{flex:none;padding:5px 12px;font-size:13px}
