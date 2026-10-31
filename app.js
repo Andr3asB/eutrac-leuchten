@@ -1,7 +1,7 @@
 // Leuchtendaten kommen aus leuchten.json, die Merkliste aus einem Sitzungs-Cookie (merkliste-store.js).
 (async()=>{
 let rows;
-try{ rows=await (await fetch("leuchten.json?v=20261101c",{cache:"no-cache"})).json() }
+try{ rows=await (await fetch("leuchten.json?v=20261101d",{cache:"no-cache"})).json() }
 catch(e){ document.getElementById("count").textContent="Leuchtendaten (leuchten.json) konnten nicht geladen werden."; return }
 rows.forEach(r=>{r.type=r.type||"Spot";r.lamp=r.lamp||"LED integriert";r.key=r.brand.replace(/\W/g,"")+"_"+r.art;r.lmw=(r.lm&&r.w&&!r.lmText)?Math.round(r.lm/r.w):null;r.cctSort=r.ccts.length?Math.min(...r.ccts):null});
 
@@ -18,9 +18,11 @@ const CCT_COLOR={2700:"#FFB04A",3000:"#FFD385",4000:"#FFF1D2"};
 const state={type:new Set(),lamp:new Set(),brand:new Set(),cct:new Set(),angle:new Set(),color:new Set(),dim:new Set(),ex:{},sort:"lm",dir:-1,view:"cards"};
 let rooms=[]; let assigns=[]; let db=null; let canWrite=true; let dbReady=false;
 
+const CHIPS=[];  // alle Filterknöpfe der Seitenleiste, damit sie mit dem Vergleichsfeld synchron bleiben
+function syncChips(){CHIPS.forEach(([b,key,v])=>b.setAttribute("aria-pressed",state[key].has(v)))}
 function chipGroup(id,key,values,label=v=>v,swatch=null){
   const el=document.getElementById(id);
-  values.forEach(v=>{const b=document.createElement("button");b.type="button";b.textContent=label(v);b.setAttribute("aria-pressed","false");
+  values.forEach(v=>{const b=document.createElement("button");b.type="button";b.textContent=label(v);b.setAttribute("aria-pressed","false");CHIPS.push([b,key,v]);
     if(swatch){const i=document.createElement("i");i.className="sw";i.style.background=swatch(v);b.prepend(i)}
     b.onclick=()=>{state[key].has(v)?state[key].delete(v):state[key].add(v);b.setAttribute("aria-pressed",state[key].has(v));render()};el.appendChild(b)});
 }
@@ -80,6 +82,19 @@ const ATTRS=[
 const ATTR=Object.fromEntries(ATTRS.map(x=>[x.k,x]));
 const CARD_SPECS=["lm","w","lmw","cct","angle","cri","ugr","dim","color","type","lamp","dims"];
 const exPass=r=>Object.entries(state.ex).every(([k,set])=>!set.size||set.has(ATTR[k].v(r)));
+// Ein Wert aus dem Vergleichsfeld: gibt es dafür einen Filter in der Seitenleiste, wird genau dieser gesetzt.
+// Nur feinere Werte (genauer Winkel, UGR, CRI, Sockel, Sonderfarben …) landen in der Zusatzauswahl state.ex.
+function facetTarget(k,v){
+  if(k==="brand"||k==="type"||k==="dim")return state[k] instanceof Set&&[...CHIPS].some(([,key,val])=>key===k&&val===v)?[k,v]:null;
+  if(k==="color"&&MAIN_COLORS.includes(v))return ["color",v];
+  if(k==="cct"){const m=/^(\d{4}) K$/.exec(v);if(m&&[2700,3000,4000].includes(+m[1]))return ["cct",+m[1]]}
+  return null;
+}
+function facetOn(k,v){const t=facetTarget(k,v);return t?state[t[0]].has(t[1]):!!(state.ex[k]&&state.ex[k].has(v))}
+function facetToggle(k,v){const t=facetTarget(k,v);
+  if(t){const s=state[t[0]];s.has(t[1])?s.delete(t[1]):s.add(t[1])}
+  else{const s=state.ex[k]||(state.ex[k]=new Set());s.has(v)?s.delete(v):s.add(v);if(!s.size)delete state.ex[k]}
+  render()}
 
 function filtered(){
   const minLm=+document.getElementById("minLm").value||0, maxW=+document.getElementById("maxW").value||Infinity,
@@ -114,7 +129,7 @@ function renderDiff(list,an){
   const nums=varying.filter(at=>at.num);
   const common=ATTRS.filter(at=>!at.num&&at.k!=="dims"&&!an[at.k].vary&&an[at.k].values.length&&an[at.k].values[0][0]!=="k. A.").map(at=>`<span class="cm"><i>${at.t}</i> ${esc(an[at.k].values[0][0])}</span>`);
   document.getElementById("diffSum").textContent=list.length<2?"Gewählte Eigenschaften":`Worin sich die ${list.length} Treffer unterscheiden`;
-  const chip=(at,v,n)=>{const on=state.ex[at.k]&&state.ex[at.k].has(v);return `<button type="button" class="fchip" data-ex="${at.k}" data-v="${esc(v)}" aria-pressed="${on}">${at.k==="cct"&&CCT_COLOR[parseInt(v)]?`<i class="sw" style="background:${CCT_COLOR[parseInt(v)]}"></i>`:""}${esc(v)}<small>${n}</small></button>`};
+  const chip=(at,v,n)=>{const on=facetOn(at.k,v);return `<button type="button" class="fchip" data-ex="${at.k}" data-v="${esc(v)}" aria-pressed="${on}">${at.k==="cct"&&CCT_COLOR[parseInt(v)]?`<i class="sw" style="background:${CCT_COLOR[parseInt(v)]}"></i>`:""}${esc(v)}<small>${n}</small></button>`};
   let html="";
   if(cats.length||nums.length){
     const maxChips=diffOpenAll?99:6, maxRows=diffOpenAll?99:(innerWidth<760?4:6);
@@ -126,15 +141,13 @@ function renderDiff(list,an){
     else if(diffOpenAll&&rowsHtml.length>(innerWidth<760?4:6))html+=`<button type="button" class="morebtn" data-diff-less>Weniger zeigen</button>`;
   } else html+=`<p class="dnone">Die Treffer unterscheiden sich nur noch in Artikelnummer und Maßen.</p>`;
   if(common.length)html+=`<p class="dcommon"><b>Bei allen gleich:</b> ${common.join("")}</p>`;
-  if(activeEx.length)html+=`<p class="dactive"><b>Hier gewählt:</b> ${activeEx.map(([k,s])=>[...s].map(v=>`<button type="button" class="fchip on" data-ex="${k}" data-v="${esc(v)}" aria-pressed="true">${ATTR[k].t}: ${esc(v)} <span aria-hidden="true">×</span><span class="sr">entfernen</span></button>`).join("")).join("")}</p>`;
   body.innerHTML=html;
 }
 let diffOpenAll=false;
 document.getElementById("diffBody").addEventListener("click",e=>{
   if(e.target.closest("[data-diff-all]")){diffOpenAll=true;render();return}
   if(e.target.closest("[data-diff-less]")){diffOpenAll=false;render();return}
-  const b=e.target.closest("[data-ex]");if(!b)return;const k=b.dataset.ex,v=b.dataset.v;
-  const s=state.ex[k]||(state.ex[k]=new Set());s.has(v)?s.delete(v):s.add(v);render();
+  const b=e.target.closest("[data-ex]");if(!b)return;facetToggle(b.dataset.ex,b.dataset.v);
 });
 // Lichtkegel: im echten Abstrahlwinkel, in der Lichtfarbe der Leuchte
 function beam(r){
@@ -184,7 +197,7 @@ function render(){
   document.getElementById("showRes").textContent=`${list.length} Treffer anzeigen`;
   const ss=document.getElementById("sortSel"),sv=state.sort+":"+state.dir;
   if([...ss.options].some(o=>o.value===sv))ss.value=sv;
-  renderDiff(list,an);
+  syncChips(); renderExtra(); renderDiff(list,an);
   const cards=document.getElementById("cards"), tb=document.getElementById("tableBox");
   cards.hidden=state.view!=="cards"; tb.hidden=state.view!=="table";
   if(state.view==="cards"){
@@ -204,6 +217,14 @@ function render(){
     if(state.view==="cards")cards.innerHTML=box; else document.getElementById("rows").innerHTML=`<tr class="emptyrow"><td colspan="${COLS.length}">${box}</td></tr>`;
   }
 }
+// Zusatzauswahl aus dem Vergleichsfeld, in der Seitenleiste sichtbar und entfernbar
+function renderExtra(){
+  const box=document.getElementById("fExtraGroup"), el=document.getElementById("fExtra");
+  const items=Object.entries(state.ex).flatMap(([k,s])=>[...s].map(v=>[k,v]));
+  box.hidden=!items.length;
+  el.innerHTML=items.map(([k,v])=>`<button type="button" aria-pressed="true" data-ex="${k}" data-v="${esc(v)}">${ATTR[k].t}: ${esc(v)} <span aria-hidden="true">×</span><span class="sr">entfernen</span></button>`).join("");
+}
+document.getElementById("fExtra").addEventListener("click",e=>{const b=e.target.closest("[data-ex]");if(b)facetToggle(b.dataset.ex,b.dataset.v)});
 function activeFilterCount(){
   let n=["type","lamp","brand","cct","angle","color","dim"].reduce((s,k)=>s+state[k].size,0)+Object.values(state.ex).reduce((s,x)=>s+x.size,0);
   if(+document.getElementById("minLm").value)n++; if(+document.getElementById("maxW").value)n++; if(+document.getElementById("minCri").value)n++; if(document.getElementById("onlyPicked").value!=="all")n++;
