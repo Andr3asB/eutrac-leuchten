@@ -375,3 +375,71 @@ figure.failed img{display:none}
 .imgdlg .actions{display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap}
 .imgdlg .actions a{font-size:14px;min-height:32px;display:inline-flex;align-items:center}
 .imgdlg .actions .sp{flex:1}
+
+/* Schienenplaner */
+.planner .back{margin:0 0 6px;font-size:14px}
+.planner .back a{display:inline-block;padding:6px 0;min-height:32px}
+.planlayout{max-width:1480px;margin:0 auto;padding:0 32px 40px;display:grid;grid-template-columns:320px minmax(0,1fr);gap:28px;align-items:start}
+.planform{position:sticky;top:16px;display:flex;flex-direction:column;gap:14px}
+.planform fieldset{border:none;margin:0;padding:14px 16px;background:var(--karte);border-radius:var(--r-lg);display:flex;flex-direction:column;gap:10px}
+.planform legend{font-weight:750;font-stretch:110%;font-size:16px;padding:0;float:left;width:100%;margin-bottom:2px}
+.planform legend+*{clear:both}
+.planform .chips button[role=radio]{border:1px solid var(--linie);background:var(--karte);border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer;min-height:34px}
+.planform .chips button[aria-checked="true"]{background:var(--ink);color:var(--karte);border-color:var(--ink)}
+.planform .chips button:disabled{opacity:.45;cursor:not-allowed}
+.planform .fine,.planout .fine{font-size:12.5px;color:var(--schiefer);margin:0}
+.planform .lbl{font-size:13.5px;font-weight:650;color:var(--schiefer)}
+.unit{display:flex;align-items:center;gap:6px}.unit input{width:110px}
+.planout{display:flex;flex-direction:column;gap:16px;min-width:0;outline:none}
+.planout section{background:var(--karte);border-radius:var(--r-lg);padding:16px 18px}
+.planout h2{font-size:19px;font-weight:750;font-stretch:110%}
+.drawhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.svgbox{overflow-x:auto}
+.svgbox svg{width:100%;min-width:560px;height:auto;display:block}
+.svgbox .rail{fill:var(--feld);stroke:var(--ink);stroke-width:1.5}
+.svgbox .joint{stroke:var(--ink);stroke-width:2;stroke-dasharray:3 3}
+.svgbox .sl{stroke:#D7262E;stroke-width:3}
+.svgbox .feed{fill:var(--ink)}
+.svgbox .cap{fill:var(--ink)}
+.svgbox .dim{stroke:var(--schiefer);stroke-width:1}
+.svgbox text{fill:var(--ink);font-family:var(--font)}
+.svgbox .tN{font-size:13px;fill:var(--schiefer)}
+.svgbox .tRail{font-size:13px;font-weight:600}
+.svgbox .tLab{font-size:13px;font-weight:650}
+.svgbox .tSmall{font-size:12px;fill:var(--schiefer)}
+.svgbox .tSL{font-size:12px;font-weight:700;fill:#D7262E}
+.svgbox .tDim{font-size:13px}
+.checks ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.checks li{display:flex;gap:8px;align-items:baseline}
+.checks li span{width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;font-size:12px;font-weight:800;flex:none;color:#fff}
+.checks li.ok span{background:var(--gemerkt)}
+.checks li.warn span{background:var(--mark);color:#1F2633}
+.checks li.bad span{background:var(--danger)}
+.err{color:var(--danger);font-weight:600;margin:8px 0 0}
+.tablewrap{overflow-x:auto}
+#bom{width:100%;border-collapse:collapse;font-size:14px}
+#bom th,#bom td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--linie);vertical-align:top;position:static;background:none;white-space:normal}
+#bom th{font-size:12.5px;color:var(--schiefer);font-weight:650}
+#bom .n{text-align:right;white-space:nowrap}
+#bom .mono{white-space:nowrap;font-variant-numeric:tabular-nums}
+#bom .why{display:block;font-size:12.5px;color:var(--schiefer)}
+#bom .na{font-size:12.5px;color:var(--schiefer)}
+#bom tr.have td{color:var(--schiefer);text-decoration:line-through;text-decoration-color:var(--linie)}
+#bom tr.have td:first-child{text-decoration:none}
+#bom input[type=checkbox]{width:24px;height:24px;margin:0;accent-color:var(--gemerkt)}
+.missing{margin-top:10px;font-size:14.5px}
+.missing:empty{display:none}
+.notes2{margin:12px 0 0;padding-left:18px;color:var(--schiefer);font-size:13.5px;display:flex;flex-direction:column;gap:4px}
+.explain ul{padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
+.explain p{font-size:14.5px;max-width:80ch}
+.plannerlink{flex:none}
+@media (max-width:900px){.planlayout{grid-template-columns:minmax(0,1fr);padding:0 12px 24px}.planform{position:static}}
+@media print{
+  body.planner > *:not(.planlayout){display:none!important}
+  body.planner .planform,body.planner .explain,body.planner .skiplink,body.planner #printBtn,body.planner .seg{display:none!important}
+  body.planner .planlayout{display:block;padding:0}
+  body.planner .planout section{padding:0;margin:0 0 12pt;break-inside:avoid}
+  body.planner #bom td,body.planner #bom th{font-size:9.5pt;padding:3pt 4pt}
+}
+.topbtns{display:flex;gap:8px;flex:none;align-items:center}
+.topbtns .ghost{text-decoration:none;color:var(--ink)}

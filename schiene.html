@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Schienenplaner – Leuchten für EUTRAC</title>
+<meta name="description" content="Stückliste für die EUTRAC 3-Phasen-Aufbauschiene: Schienen, Einspeiser, Verbinder, Endkappen und Befestigung – mit richtiger Lage des Schutzleiters.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#262E3C">
+<link rel="stylesheet" href="fonts.css?v=20261101h">
+<link rel="stylesheet" href="style.css?v=20261101h">
+</head>
+<body class="planner">
+<a class="skiplink" href="#planOut">Zur Stückliste springen</a>
+<header class="top">
+  <div class="topin">
+    <div>
+      <p class="back"><a href="./">← Zur Leuchtenliste</a></p>
+      <h1>Schienenplaner</h1>
+      <p class="lead">Stückliste für die EUTRAC‑3‑Phasen‑Aufbauschiene: Schienen, Einspeiser, Verbinder, Endkappen und Befestigung. Der Planer wählt die Varianten so, dass der Schutzleiter durchgängig richtig liegt, und zeigt, was noch fehlt.</p>
+    </div>
+  </div>
+</header>
+
+<div class="planlayout">
+  <form class="planform" id="planForm" aria-label="Schiene planen" onsubmit="return false">
+    <fieldset>
+      <legend>Form</legend>
+      <div class="chips" role="radiogroup" aria-label="Form">
+        <button type="button" role="radio" aria-checked="true" data-shape="straight">gerade</button>
+        <button type="button" role="radio" aria-checked="false" disabled title="folgt">L</button>
+        <button type="button" role="radio" aria-checked="false" disabled title="folgt">T</button>
+        <button type="button" role="radio" aria-checked="false" disabled title="folgt">H, X, Rahmen …</button>
+      </div>
+      <p class="fine">Weitere Formen folgen. Der Rechenkern beherrscht sie bereits, inklusive Schutzleiter-Prüfung bei X‑Verbindern.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Schiene</legend>
+      <div class="f"><label for="len">Schienenlänge</label>
+        <div class="unit"><input type="text" id="len" value="3" inputmode="decimal" autocomplete="off" aria-describedby="lenHint"><span>m</span></div><span class="fine" id="lenHint">z. B. 2,40 – Komma oder Punkt</span></div>
+      <div class="f"><label for="maxLen">Längste Schiene, die ich kaufe</label>
+        <select id="maxLen"><option value="2">2 m (gut zu transportieren)</option><option value="3" selected>3 m</option><option value="4">4 m</option></select></div>
+      <div class="f"><label for="color">Farbe</label>
+        <select id="color"><option value="weiss">weiß</option><option value="schwarz">schwarz</option><option value="silber">silbergrau</option></select></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Einspeisung</legend>
+      <div class="chips" role="radiogroup" aria-label="Lage der Einspeisung">
+        <button type="button" role="radio" aria-checked="true" data-feed="left">am linken Ende</button>
+        <button type="button" role="radio" aria-checked="false" data-feed="right">am rechten Ende</button>
+        <button type="button" role="radio" aria-checked="false" data-feed="mid">in der Mitte</button>
+      </div>
+      <div class="f" id="haveFeedRow"><label for="haveFeed">Einspeiser schon gekauft?</label>
+        <select id="haveFeed"><option value="">nein, noch offen</option><option value="rechts">ja, „Schutzleiter rechts“</option><option value="links">ja, „Schutzleiter links“</option></select></div>
+      <div class="f" id="sideRow"><span class="lbl">Lage des Schutzleiters</span>
+        <button type="button" class="ghost" id="flip">Seite tauschen</button></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Befestigung</legend>
+      <div class="f"><label for="mount">Montage</label>
+        <select id="mount">
+          <option value="direct">direkt an die Decke (Langlöcher)</option>
+          <option value="clip">mit Deckenclips (unebene Decke)</option>
+          <option value="rod60">abgehängt, Pendelrohr 60 cm</option>
+          <option value="rod120">abgehängt, Pendelrohr 120 cm</option>
+          <option value="rope150">abgehängt, Seil 1,5 m</option>
+          <option value="rope300">abgehängt, Seil 3 m</option>
+          <option value="rope620">abgehängt, Seil 6,2 m</option>
+        </select></div>
+      <div class="f" id="spacingRow" hidden><label for="spacing">Abstand der Abhängepunkte</label>
+        <select id="spacing"><option value="1000">höchstens 1 m (je Strahler bis 3 kg)</option><option value="500">höchstens 0,5 m (je Strahler bis 5 kg)</option></select></div>
+    </fieldset>
+  </form>
+
+  <main class="planout" id="planOut" tabindex="-1">
+    <section class="drawing" aria-labelledby="drawH">
+      <div class="drawhead"><h2 id="drawH">Grundriss</h2>
+        <div class="seg" role="group" aria-label="Ansicht"><button type="button" data-view="top" aria-pressed="true">von oben (wie im Katalog)</button><button type="button" data-view="below" aria-pressed="false">von unten (an die Decke geschaut)</button></div></div>
+      <div id="svgBox" class="svgbox"></div>
+      <p class="fine" id="drawNote"></p>
+    </section>
+
+    <section class="checks" aria-labelledby="chkH"><h2 id="chkH">Prüfung</h2><ul id="checks"></ul><div id="errors" role="alert"></div></section>
+
+    <section class="bom" aria-labelledby="bomH">
+      <div class="drawhead"><h2 id="bomH">Stückliste</h2><button type="button" class="ghost" id="printBtn">Drucken oder als PDF</button></div>
+      <p class="fine">Hake an, was du schon hast. Darunter steht, was noch fehlt.</p>
+      <div class="tablewrap"><table id="bom"><thead><tr><th scope="col">Habe ich</th><th class="n" scope="col">Menge</th><th scope="col">Teil</th><th scope="col">EUTRAC</th><th scope="col">SLV</th></tr></thead><tbody></tbody></table></div>
+      <div id="missing" class="missing" aria-live="polite"></div>
+      <ul id="notes" class="notes2"></ul>
+    </section>
+
+    <section class="explain" aria-labelledby="exH">
+      <h2 id="exH">Schutzleiter „rechts“ oder „links“?</h2>
+      <p>Die EUTRAC‑Schiene ist nicht symmetrisch: Der Schutzleiter liegt innen auf einer Seite des Profils. Danach richten sich die Leiter in der Schiene. Deshalb gibt es Einspeiser, L‑ und T‑Verbinder in zwei bzw. vier Ausführungen.</p>
+      <ul>
+        <li><b>Einspeiser „rechts/links“:</b> von oben auf den Grundriss geschaut (Öffnung der Schiene nach unten), in Blickrichtung vom Einspeiser in die Schiene.</li>
+        <li><b>L‑Verbinder „innen/außen“:</b> liegt der Schutzleiter an der Innen- oder an der Außenseite der Ecke?</li>
+        <li><b>T‑Verbinder:</b> „innen“ heißt, der Schutzleiter der durchgehenden Schiene liegt auf der Seite des Abzweigs; „rechts/links“ beschreibt den Abzweig vom Knoten aus gesehen.</li>
+        <li><b>X‑Verbinder:</b> gibt es nur einmal. Eine gerade durch das X laufende Schiene wechselt dabei die Seite – bei Rahmen und H‑Formen mit X ist das der Knackpunkt.</li>
+      </ul>
+      <p class="fine">Steht man im Raum und schaut an die Decke, ist alles gespiegelt. Die Ansicht „von unten“ zeigt die Schiene so, wie du sie montiert siehst. Die Teilenamen bleiben dabei die des Katalogs. Quellen: EUTRAC Katalog 06/2022, S. 61–65, 88, 91, 92; SLV‑Zuordnung zu EUTRAC‑Artikeln. Angaben ohne Gewähr – Montage und Anschluss durch eine Elektrofachkraft.</p>
+    </section>
+  </main>
+</div>
+
+<footer class="sitefoot"><a href="./">Leuchtenliste</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
+
+<script src="schiene-engine.js?v=20261101h"></script>
+<script src="schiene.js?v=20261101h"></script>
+</body>
+</html>
