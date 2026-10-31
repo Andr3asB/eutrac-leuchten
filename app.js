@@ -95,7 +95,7 @@ function renderRooms(){
   if(editing){const i=document.getElementById("ren-"+editing);if(i){i.focus();i.select()}}
 }
 
-async function safe(fn,msg){try{await fn()}catch(err){if(err&&err.code==="invalid_argument"){canWrite=false;status("Nur Ansicht: Du kannst die Merkliste nicht ändern. Bitte Bearbeitungsrecht beim Besitzer anfragen.");render();renderRooms()}else status(err&&err.code==="too_large"?err.message:msg)}}
+async function safe(fn,msg){try{await fn()}catch(err){if(err&&err.code==="invalid_argument"){canWrite=false;status("Nur Ansicht: Du kannst die Merkliste nicht ändern. Bitte Bearbeitungsrecht beim Besitzer anfragen.");render();renderRooms()}else status(err&&["too_large","conflict","forbidden","not_found","network"].includes(err.code)?err.message:msg)}}
 const slug=s=>s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"raum";
 
 document.getElementById("addRoom").onclick=async()=>{
@@ -159,18 +159,98 @@ document.getElementById("pickForm").addEventListener("submit",async e=>{
     if(existing)await db.doc("zuordnung/"+existing.id).update({stueck:existing.stueck+qty});
     else await db.collection("zuordnung").add({leuchte:pickKey,raum:roomId,gruppe:g,stueck:qty,t:Date.now()});
     dlg.close();
-  }catch(err){const p=document.getElementById("pickErr");p.hidden=false;p.textContent=err&&err.code==="too_large"?err.message:err&&err.code==="invalid_argument"?"Keine Berechtigung zum Ändern der Merkliste.":"Speichern fehlgeschlagen. Bitte erneut versuchen."}
+  }catch(err){const p=document.getElementById("pickErr");p.hidden=false;p.textContent=err&&["too_large","conflict","forbidden","not_found","network"].includes(err.code)?err.message:err&&err.code==="invalid_argument"?"Keine Berechtigung zum Ändern der Merkliste.":"Speichern fehlgeschlagen. Bitte erneut versuchen."}
   finally{btn.disabled=false}
 });
 
 render(); renderRooms();
-db=window.MerklisteStore.open();
-let gotRooms=false,gotAssigns=false;
-const done=()=>{if(gotRooms&&gotAssigns&&!dbReady){dbReady=true;
-  status(db.persistent?"Auf „Merken“ klicken, um eine Leuchte einem Raum und einer Verwendung zuzuordnen. Die Merkliste liegt in einem Sitzungs-Cookie in diesem Browser und wird beim Schließen des Browsers gelöscht."
-    :"Cookies sind blockiert: Die Merkliste funktioniert, geht aber beim Neuladen der Seite verloren.");render();renderRooms()}};
-  db.collection("raeume").onSnapshot(s=>{rooms=s.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.pos||0)-(b.pos||0));gotRooms=true;done();render();renderRooms()},
-    ()=>status("Räume konnten nicht geladen werden."));
-  db.collection("zuordnung").onSnapshot(s=>{assigns=s.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()})).filter(a=>a.leuchte&&a.raum).map(a=>({...a,stueck:+a.stueck||1}));gotAssigns=true;done();render();renderRooms()},
-    ()=>status("Merkliste konnte nicht geladen werden."));
+
+// ---------- Merkliste: lokal oder gemeinsam ----------
+const S=window.MerklisteStore;
+let unsub=[], notice="";
+const KNOWN=["too_large","conflict","forbidden","not_found","network","not_configured","offline"];
+function readyText(){
+  if(db.mode==="shared")return "Gemeinsame Liste"+(db.hasPassword?" (mit Passwort)":"")+": Alle mit dem Link sehen Änderungen sofort. Die Daten werden im Browser verschlüsselt gespeichert.";
+  return db.persistent?"Auf „Merken“ klicken, um eine Leuchte einem Raum und einer Verwendung zuzuordnen. Die Merkliste liegt in einem Sitzungs-Cookie in diesem Browser und wird beim Schließen des Browsers gelöscht."
+    :"Cookies sind blockiert: Die Merkliste funktioniert, geht aber beim Neuladen der Seite verloren.";
+}
+function attach(store){
+  unsub.forEach(f=>f());unsub=[];if(db&&db.close&&db!==store)db.close();
+  db=store;dbReady=false;rooms=[];assigns=[];editing=null;confirmDel=null;
+  let gotRooms=false,gotAssigns=false;
+  const done=()=>{if(gotRooms&&gotAssigns&&!dbReady){dbReady=true;status((notice?notice+" ":"")+readyText());notice="";render();renderRooms()}};
+  unsub.push(db.collection("raeume").onSnapshot(s=>{rooms=s.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.pos||0)-(b.pos||0));gotRooms=true;done();render();renderRooms()}));
+  unsub.push(db.collection("zuordnung").onSnapshot(s=>{assigns=s.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()})).filter(a=>a.leuchte&&a.raum).map(a=>({...a,stueck:+a.stueck||1}));gotAssigns=true;done();render();renderRooms()}));
+  if(db.onRemoteChange)db.onRemoteChange(e=>{if(e&&e.code==="not_found"){goLocal("Die gemeinsame Liste wurde gelöscht.")}else if(dbReady)status("Aktualisiert: "+new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+" · "+readyText())});
+  renderShareBar();render();renderRooms();
+}
+function goLocal(msg){S.leaveShared();history.replaceState(null,"",location.pathname+location.search);notice=msg||"";attach(S.openLocal())}
+
+const shareBar=document.getElementById("shareBar");
+function renderShareBar(){
+  if(db&&db.mode==="shared"){
+    shareBar.innerHTML=`<span class="badge">Gemeinsam${db.hasPassword?" · 🔒":""}</span><button class="btn" type="button" data-share="copy">Link kopieren</button><button class="btn link" type="button" data-share="local">Zur lokalen Liste</button><button class="btn link" type="button" data-share="delete">Löschen</button>`;
+  }else{
+    shareBar.innerHTML=S.configured()?`<button class="btn" type="button" data-share="create">Gemeinsam bearbeiten …</button>`:"";
+  }
+}
+async function copyText(t){try{await navigator.clipboard.writeText(t);return true}catch(e){return false}}
+shareBar.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-share]");if(!b)return;const act=b.dataset.share;
+  if(act==="create")openShareDlg();
+  else if(act==="copy"){const ok=await copyText(db.link);status(ok?"Link kopiert. Wer ihn hat, kann die Liste ansehen und ändern"+(db.hasPassword?" – zusätzlich ist das Passwort nötig.":"."):"Link: "+db.link)}
+  else if(act==="local")goLocal("Lokale Merkliste. Die gemeinsame Liste bleibt über ihren Link erreichbar.");
+  else if(act==="delete"){if(!confirm("Gemeinsame Liste endgültig löschen? Alle mit dem Link verlieren den Zugriff."))return;
+    try{await db.destroy();goLocal("Gemeinsame Liste gelöscht.")}catch(err){status(KNOWN.includes(err.code)?err.message:"Löschen fehlgeschlagen.")}}
+});
+
+// Dialog: gemeinsame Liste anlegen
+const shareDlg=document.getElementById("shareDlg");
+function openShareDlg(){
+  ["sPw","sPw2"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("shareErr").hidden=true;document.getElementById("shareForm").hidden=false;document.getElementById("shareDone").hidden=true;
+  shareDlg.showModal();
+}
+document.getElementById("shareCancel").onclick=()=>shareDlg.close();
+document.getElementById("shareClose").onclick=()=>shareDlg.close();
+document.getElementById("shareForm").addEventListener("submit",async e=>{
+  e.preventDefault();const pw=document.getElementById("sPw").value,pw2=document.getElementById("sPw2").value,er=document.getElementById("shareErr");
+  if(pw!==pw2){er.hidden=false;er.textContent="Die Passwörter stimmen nicht überein.";return}
+  if(pw&&pw.length<6){er.hidden=false;er.textContent="Bitte mindestens 6 Zeichen verwenden oder das Feld leer lassen.";return}
+  const btn=document.getElementById("shareSave");btn.disabled=true;btn.textContent="Wird angelegt …";
+  try{
+    const res=await S.createShared(db._data(),pw);
+    history.replaceState(null,"",res.hash);
+    attach(await S.openShared(S.parseLink(res.hash),async()=>pw));
+    document.getElementById("shareLink").value=res.url;
+    document.getElementById("shareForm").hidden=true;document.getElementById("shareDone").hidden=false;
+    document.getElementById("sharePwNote").hidden=!pw;
+  }catch(err){er.hidden=false;er.textContent=KNOWN.includes(err.code)?err.message:"Anlegen fehlgeschlagen. Bitte erneut versuchen."}
+  finally{btn.disabled=false;btn.textContent="Link erstellen"}
+});
+document.getElementById("shareCopy").onclick=async()=>{const i=document.getElementById("shareLink");const ok=await copyText(i.value);if(!ok){i.select()}document.getElementById("shareCopy").textContent=ok?"Kopiert ✓":"Markiert – bitte kopieren"};
+
+// Dialog: Passwort abfragen
+const pwDlg=document.getElementById("pwDlg");
+function askPassword(wrong){return new Promise(resolve=>{
+  const inp=document.getElementById("pwInput");inp.value="";document.getElementById("pwErr").hidden=!wrong;
+  const f=document.getElementById("pwForm");
+  const finish=v=>{f.onsubmit=null;document.getElementById("pwCancel").onclick=null;pwDlg.close();resolve(v)};
+  f.onsubmit=e=>{e.preventDefault();finish(inp.value)};
+  document.getElementById("pwCancel").onclick=()=>finish(null);
+  pwDlg.oncancel=e=>{e.preventDefault();finish(null)};
+  pwDlg.showModal();inp.focus();
+})}
+
+async function start(){
+  let link=S.parseLink(location.hash);
+  if(!link){const rem=S.rememberedShared();const l=rem&&S.parseLink(rem);if(l){link=l;history.replaceState(null,"",l.hash)}}
+  if(!link){attach(S.openLocal());return}
+  if(!S.configured()){notice="Gemeinsame Listen sind auf dieser Seite noch nicht eingerichtet.";attach(S.openLocal());return}
+  status("Gemeinsame Liste wird geöffnet …");
+  try{attach(await S.openShared(link,askPassword))}
+  catch(err){goLocal((err.code==="cancelled"?"Ohne Passwort kann die gemeinsame Liste nicht geöffnet werden.":KNOWN.includes(err.code)||err.code==="bad_key"?err.message:"Die gemeinsame Liste konnte nicht geöffnet werden.")+" Angezeigt wird die lokale Merkliste.")}
+}
+window.addEventListener("hashchange",()=>{const l=S.parseLink(location.hash);if(l&&(!db||db.id!==l.id))start()});
+start();
 })();

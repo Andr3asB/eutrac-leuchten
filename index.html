@@ -17,6 +17,7 @@
   <section class="panel" aria-labelledby="mlh">
     <div class="panelhead">
       <h2 id="mlh">Merkliste nach Raum</h2>
+      <div class="tools share" id="shareBar"></div>
       <div class="tools"><input type="text" id="newRoom" placeholder="Neuer Raum" aria-label="Name für neuen Raum"><button class="btn" id="addRoom" type="button">Raum hinzufügen</button></div>
     </div>
     <div class="status" id="pickStatus">Merkliste wird geladen …</div>
@@ -75,6 +76,40 @@
     <div class="actions"><button class="btn" type="button" id="pickCancel">Abbrechen</button><button class="btn primary" type="submit" id="pickSave">Merken</button></div>
   </form>
 </dialog>
+<dialog id="shareDlg">
+  <form id="shareForm">
+    <h3>Gemeinsam bearbeiten</h3>
+    <p>Die aktuelle Merkliste wird als gemeinsame Liste angelegt. Wer den Link hat, kann sie ansehen und ändern, Änderungen erscheinen bei allen sofort.</p>
+    <p class="fine">Die Liste wird im Browser verschlüsselt, bevor sie gespeichert wird. Der Schlüssel steckt im Link und wird nie an den Server geschickt.</p>
+    <div class="row">
+      <div class="f"><label for="sPw">Passwort (optional)</label><input type="password" id="sPw" autocomplete="new-password" placeholder="leer = nur Link"></div>
+      <div class="f"><label for="sPw2">Passwort wiederholen</label><input type="password" id="sPw2" autocomplete="new-password"></div>
+    </div>
+    <p class="fine">Mit Passwort braucht man Link <b>und</b> Passwort. Das Passwort lässt sich nicht wiederherstellen.</p>
+    <p id="shareErr" class="err" hidden></p>
+    <div class="actions"><button class="btn" type="button" id="shareCancel">Abbrechen</button><button class="btn primary" type="submit" id="shareSave">Link erstellen</button></div>
+  </form>
+  <div id="shareDone" hidden>
+    <h3>Gemeinsame Liste angelegt</h3>
+    <p>Diesen Link an Familie oder Elektriker schicken:</p>
+    <div class="linkrow"><input type="text" id="shareLink" readonly aria-label="Link zur gemeinsamen Liste"><button class="btn primary" type="button" id="shareCopy">Kopieren</button></div>
+    <p class="fine" id="sharePwNote">Das Passwort bitte getrennt mitteilen, zum Beispiel per Anruf oder SMS.</p>
+    <div class="actions"><button class="btn" type="button" id="shareClose">Fertig</button></div>
+  </div>
+</dialog>
+
+<dialog id="pwDlg">
+  <form id="pwForm">
+    <h3>Passwort für die gemeinsame Liste</h3>
+    <p>Diese Merkliste ist mit einem Passwort geschützt.</p>
+    <div class="f"><label for="pwInput">Passwort</label><input type="password" id="pwInput" autocomplete="current-password"></div>
+    <p id="pwErr" class="err" hidden>Passwort falsch. Bitte erneut versuchen.</p>
+    <div class="actions"><button class="btn" type="button" id="pwCancel">Abbrechen</button><button class="btn primary" type="submit">Öffnen</button></div>
+  </form>
+</dialog>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
 <script src="merkliste-store.js"></script>
 <script src="app.js"></script>
 </body>
