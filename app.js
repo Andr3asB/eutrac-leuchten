@@ -23,7 +23,7 @@ function chipGroup(id,key,values,label=v=>v){
   values.forEach(v=>{const b=document.createElement("button");b.type="button";b.textContent=label(v);b.setAttribute("aria-pressed","false");
     b.onclick=()=>{state[key].has(v)?state[key].delete(v):state[key].add(v);b.setAttribute("aria-pressed",state[key].has(v));render()};el.appendChild(b)});
 }
-chipGroup("fBrand","brand",["SLV","Deko-Light","ISOLED"]);
+chipGroup("fBrand","brand",[...new Set(rows.map(r=>r.brand))]);
 chipGroup("fCct","cct",[2700,3000,4000],v=>v+" K");
 chipGroup("fAngle","angle",ANGLE_BUCKETS.map(b=>b[0]),v=>ANGLE_BUCKETS.find(b=>b[0]===v)[1]);
 chipGroup("fType","type",["Spot","Pendel","Linear/Fläche"]);
@@ -64,7 +64,7 @@ function render(){
     const usedTxt=u.map(a=>{const rm=roomById(a.raum);return `${a.stueck}× ${esc(rm?rm.name:"?")}${a.gruppe?" / "+esc(a.gruppe):""}`}).join(", ");
     return `<tr class="${u.length?"picked":""}">
     <td><button class="btn${u.length?"":" primary"}" type="button" data-pick="${r.key}"${writable()?"":" disabled"}>Merken</button>${u.length?`<span class="used">${usedTxt}</span>`:""}</td>
-    <td style="white-space:normal;min-width:240px"><span class="brand">${r.brand}</span><span class="model">${esc(r.model)}</span></td><td>${r.type}<span class="brand">${esc(r.lamp)}</span></td>
+    <td style="white-space:normal;min-width:240px"><span class="brand">${r.brand}</span><span class="model">${esc(r.model)}</span>${r.hinweis?`<span class="hint">⚠ ${esc(r.hinweis)}</span>`:""}</td><td>${r.type}<span class="brand">${esc(r.lamp)}</span></td>
     <td><span class="cct">${r.ccts.map(c=>`<span class="dot" style="background:${CCT_COLOR[c]}"></span>`).join("")}${r.cctLabel}</span></td>
     <td>${r.angleLabel}</td><td>${r.color}</td>
     <td class="n">${fmt(r.w)}</td><td class="n">${r.lmText||fmt(r.lm)}</td><td class="n">${fmt(r.lmw)}</td><td class="n">${fmt(r.cri)}</td><td>${r.dim}</td><td class="n">${fmt(r.ugr)}</td>
