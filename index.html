@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Leuchten für EUTRAC</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;750&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Leuchten für EUTRAC</h1>
+    <p class="lead">Leuchten für die EUTRAC‑3‑Phasen‑Schienen: das komplette SLV‑Sortiment ohne DALI (Spots, Pendel, Linearleuchten) plus phasendimmbare Alternativen von Deko‑Light und ISOLED. Stand: 31.10.2026.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="mlh">
+    <div class="panelhead">
+      <h2 id="mlh">Merkliste nach Raum</h2>
+      <div class="tools"><input type="text" id="newRoom" placeholder="Neuer Raum" aria-label="Name für neuen Raum"><button class="btn" id="addRoom" type="button">Raum hinzufügen</button></div>
+    </div>
+    <div class="status" id="pickStatus">Merkliste wird geladen …</div>
+    <div class="rooms" id="rooms"></div>
+  </section>
+
+  <section class="panel filters" aria-label="Filter">
+    <div class="f"><span class="lbl">Hersteller</span><div class="chips" id="fBrand"></div></div>
+    <div class="f"><span class="lbl">Typ</span><div class="chips" id="fType"></div></div>
+    <div class="f"><span class="lbl">Leuchtmittel</span><div class="chips" id="fLamp"></div></div>
+    <div class="f"><span class="lbl">Farbtemperatur</span><div class="chips" id="fCct"></div></div>
+    <div class="f"><span class="lbl">Abstrahlwinkel</span><div class="chips" id="fAngle"></div></div>
+    <div class="f"><span class="lbl">Gehäuse</span><div class="chips" id="fColor"></div></div>
+    <div class="f"><span class="lbl">Dimmung</span><div class="chips" id="fDim"></div></div>
+    <div class="f"><label for="minCri">CRI min.</label><select id="minCri"><option value="0">alle</option><option value="90">≥ 90</option><option value="92">≥ 92</option></select></div>
+    <div class="f"><label for="minLm">Lumen min.</label><input type="number" id="minLm" min="0" step="100" placeholder="z. B. 1500"></div>
+    <div class="f"><label for="maxW">Watt max.</label><input type="number" id="maxW" min="0" step="1" placeholder="z. B. 20"></div>
+    <div class="f"><label for="onlyPicked">Anzeige</label><select id="onlyPicked"><option value="all">alle Leuchten</option><option value="picked">nur gemerkte</option></select></div>
+    <div class="f"><button class="reset" id="reset" type="button">Filter zurücksetzen</button></div>
+  </section>
+
+  <div class="count" id="count"></div>
+  <div class="tablebox">
+    <table>
+      <thead><tr id="head"></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <div class="notes">
+    <div><b>Merken:</b> „Merken“ in der ersten Spalte öffnet die Auswahl von Raum, Verwendung und Stückzahl. Eine Leuchte kann in beliebig vielen Räumen und Verwendungen stehen. Räume und Verwendungen lassen sich in der Merkliste umbenennen, ergänzen und löschen.</div>
+    <div><b>Preis:</b> „ab“‑Preis aus Onlineshops, nicht tagesaktuell. Leuchten ohne bekannten Preis zählen im Raum als „ohne Preis“.</div>
+    <div><b>Dimmung:</b> „Abschnitt“ = laut Datenblatt nur Phasenabschnitt (Trailing Edge), „An‑/Abschnitt“ = beides. Ein Test am eigenen KNX‑Aktor ersetzt das nicht.</div>
+    <div><b>NUMINOS:</b> alle 78 Artikelnummern einzeln gegen das SLV‑Datenblatt geprüft. Das Datenblatt‑PDF enthält das Produktbild; „Bilder“ öffnet eine Bildersuche ohne Werbung (DuckDuckGo).</div>
+    <div><b>Deko‑Light Lucea:</b> 3000/4000 K am Strahler umschaltbar. <b>ISOLED:</b> Zoom‑Strahler, dimmbar etwa 20–100 %.</div>
+    <div><b>SLV‑Sortiment:</b> 177 weitere SLV‑Artikel aus dem Sortiment von leuchtmittel-verkauf.de (alle SLV‑3‑Phasen‑Leuchten dort, ohne DALI‑Varianten, weil SLV‑DALI‑Adapter laut SLV nicht auf EUTRAC passen). Technische Werte, Bild und Preis stammen von dieser Shopseite, die Datenblatt‑Links von SLV. Dimmung „k. A.“ heißt: Der Shop nennt keine Dimmart. Vor dem Kauf im Datenblatt prüfen. Bei mehreren Lumenwerten (z. B. SIGHT, TRACKSPOT P90) hängt der Wert von Länge oder Leistungsstufe ab.</div>
+    <div><b>Nicht aufgenommen:</b> LEDVANCE Tracklight Spot Zoom Dim (Drehregler am Strahler statt Phasendimmung) und SLV TRACKSPOT C (Dimmbarkeit nicht angegeben).</div>
+  </div>
+</div>
+
+<dialog id="pickDlg">
+  <form method="dialog" id="pickForm">
+    <h3 id="pickTitle">Leuchte merken</h3>
+    <p id="pickSub"></p>
+    <div class="row">
+      <div class="f"><label for="pRoom">Raum</label><select id="pRoom" required></select></div>
+      <div class="f"><label for="pGroup">Verwendung</label><select id="pGroup"></select></div>
+    </div>
+    <div class="row">
+      <div class="f"><label for="pNewGroup">oder neue Verwendung</label><input type="text" id="pNewGroup" placeholder="z. B. Leseecke"></div>
+      <div class="f"><label for="pQty">Stückzahl</label><input type="number" id="pQty" min="1" max="50" value="1"></div>
+    </div>
+    <p id="pickErr" hidden></p>
+    <div class="actions"><button class="btn" type="button" id="pickCancel">Abbrechen</button><button class="btn primary" type="submit" id="pickSave">Merken</button></div>
+  </form>
+</dialog>
+<script src="merkliste-store.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
