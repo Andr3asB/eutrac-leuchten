@@ -4,6 +4,6 @@
 // die Funktionen aus supabase/schema.sql zu, und die Listen selbst sind im Browser verschlüsselt.
 // Leer lassen = nur lokale Merkliste (Sitzungs-Cookie).
 window.MERKLISTE_CONFIG={
-  supabaseUrl:"",
-  supabaseAnonKey:""
+  supabaseUrl:"https://yvpnuitixodicbgfteei.supabase.co",
+  supabaseAnonKey:"sb_publishable_j6oRu9iRtmiLAIni0XjfXg_SnTSR78L"
 };
