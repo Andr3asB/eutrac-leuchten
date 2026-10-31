@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Leuchten für EUTRAC</title>
-<link rel="stylesheet" href="fonts.css?v=20261101d">
-<link rel="stylesheet" href="style.css?v=20261101d">
+<link rel="stylesheet" href="fonts.css?v=20261101e">
+<link rel="stylesheet" href="style.css?v=20261101e">
 </head>
 <body>
 <a class="skiplink" href="#leuchten">Zur Leuchtenliste springen</a>
@@ -25,14 +25,26 @@
     <div class="fgroup extra" id="fExtraGroup" hidden><h3>Aus dem Vergleich gewählt</h3><div class="chips" id="fExtra"></div></div>
     <div class="fgroup"><h3>Lichtfarbe</h3><div class="chips" id="fCct"></div></div>
     <div class="fgroup"><h3>Abstrahlwinkel</h3><div class="chips" id="fAngle"></div></div>
+    <div class="fgroup ranges">
+      <div class="range" id="lmRange" role="group" aria-labelledby="lmRangeLbl">
+        <div class="rhead"><span id="lmRangeLbl">Lichtstrom</span><output id="lmRangeOut" aria-live="polite">alle</output></div>
+        <div class="dual"><div class="track"><div class="fill"></div></div>
+          <input type="range" min="0" max="1" step="1" value="0" data-end="lo" aria-label="Lichtstrom mindestens">
+          <input type="range" min="0" max="1" step="1" value="1" data-end="hi" aria-label="Lichtstrom höchstens"></div>
+      </div>
+      <div class="range" id="wRange" role="group" aria-labelledby="wRangeLbl">
+        <div class="rhead"><span id="wRangeLbl">Leistung</span><output id="wRangeOut" aria-live="polite">alle</output></div>
+        <div class="dual"><div class="track"><div class="fill"></div></div>
+          <input type="range" min="0" max="1" step="1" value="0" data-end="lo" aria-label="Leistung mindestens">
+          <input type="range" min="0" max="1" step="1" value="1" data-end="hi" aria-label="Leistung höchstens"></div>
+      </div>
+    </div>
     <div class="fgroup"><h3>Dimmung</h3><div class="chips" id="fDim"></div></div>
     <div class="fgroup"><h3>Hersteller</h3><div class="chips" id="fBrand"></div></div>
     <div class="fgroup"><h3>Typ</h3><div class="chips" id="fType"></div></div>
     <div class="fgroup"><h3>Leuchtmittel</h3><div class="chips" id="fLamp"></div></div>
     <div class="fgroup"><h3>Gehäuse</h3><div class="chips" id="fColor"></div></div>
     <div class="fgroup nums">
-      <div class="f"><label for="minLm">Lumen mindestens</label><input type="number" id="minLm" min="0" step="100" placeholder="z. B. 1500"></div>
-      <div class="f"><label for="maxW">Watt höchstens</label><input type="number" id="maxW" min="0" step="1" placeholder="z. B. 20"></div>
       <div class="f"><label for="minCri">CRI mindestens</label><select id="minCri"><option value="0">alle</option><option value="90">90</option><option value="92">92</option></select></div>
       <div class="f" id="viewFilter"><label for="onlyPicked">Anzeigen</label><select id="onlyPicked"><option value="all">alle Leuchten</option><option value="picked">nur gemerkte</option></select></div>
     </div>
@@ -148,10 +160,10 @@
   </form>
 </dialog>
 
-<script src="config.js?v=20261101d"></script>
-<script src="vendor/supabase-2.117.3.js?v=20261101d"></script>
-<script src="merkliste-store.js?v=20261101d"></script>
-<script src="tour.js?v=20261101d"></script>
-<script src="app.js?v=20261101d"></script>
+<script src="config.js?v=20261101e"></script>
+<script src="vendor/supabase-2.117.3.js?v=20261101e"></script>
+<script src="merkliste-store.js?v=20261101e"></script>
+<script src="tour.js?v=20261101e"></script>
+<script src="app.js?v=20261101e"></script>
 </body>
 </html>

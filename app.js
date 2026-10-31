@@ -1,7 +1,7 @@
 // Leuchtendaten kommen aus leuchten.json, die Merkliste aus einem Sitzungs-Cookie (merkliste-store.js).
 (async()=>{
 let rows;
-try{ rows=await (await fetch("leuchten.json?v=20261101d",{cache:"no-cache"})).json() }
+try{ rows=await (await fetch("leuchten.json?v=20261101e",{cache:"no-cache"})).json() }
 catch(e){ document.getElementById("count").textContent="Leuchtendaten (leuchten.json) konnten nicht geladen werden."; return }
 rows.forEach(r=>{r.type=r.type||"Spot";r.lamp=r.lamp||"LED integriert";r.key=r.brand.replace(/\W/g,"")+"_"+r.art;r.lmw=(r.lm&&r.w&&!r.lmText)?Math.round(r.lm/r.w):null;r.cctSort=r.ccts.length?Math.min(...r.ccts):null});
 
@@ -39,10 +39,37 @@ COLS.forEach(c=>{const th=document.createElement("th");if(c.n)th.className="n";
   if(c.nosort){th.textContent=c.t}else{const b=document.createElement("button");b.textContent=c.t;b.dataset.k=c.k;
     b.onclick=()=>{state.dir=state.sort===c.k?-state.dir:1;state.sort=c.k;render()};th.appendChild(b)}
   head.appendChild(th)});
-["minLm","maxW","minCri","onlyPicked"].forEach(id=>document.getElementById(id).addEventListener("input",render));
+["minCri","onlyPicked"].forEach(id=>document.getElementById(id).addEventListener("input",render));
+// Doppel-Schieberegler für Lichtstrom und Leistung. Die Regler rasten auf den tatsächlich vorkommenden Werten ein,
+// damit man auch dort fein einstellen kann, wo viele Leuchten dicht beieinander liegen.
+const RANGES={};
+function makeRange(id,key,unit){
+  const box=document.getElementById(id), [lo,hi]=box.querySelectorAll("input[type=range]"), out=document.getElementById(id+"Out"), fill=box.querySelector(".fill");
+  const vals=[...new Set(rows.map(r=>r[key]).filter(v=>v!=null))].sort((x,y)=>x-y), N=vals.length-1;
+  const show=v=>v.toLocaleString("de-DE")+" "+unit;
+  [lo,hi].forEach(i=>{i.max=N});lo.value=0;hi.value=N;
+  function paint(){
+    const a=+lo.value,b=+hi.value;
+    fill.style.left=(a/N*100)+"%";fill.style.right=(100-b/N*100)+"%";
+    lo.setAttribute("aria-valuetext",show(vals[a]));hi.setAttribute("aria-valuetext",show(vals[b]));
+    out.textContent=a===0&&b===N?`alle (${show(vals[0])} bis ${show(vals[N])})`:`${show(vals[a])} bis ${show(vals[b])}`;
+    lo.style.zIndex=a>N/2?3:2;  // liegen beide Griffe rechts, muss der untere greifbar bleiben
+  }
+  function upd(e){
+    let a=+lo.value,b=+hi.value;
+    if(a>b){if(e&&e.target===lo){lo.value=b;a=b}else{hi.value=a;b=a}}
+    state[key+"Range"]=a===0&&b===N?null:[vals[a],vals[b]];
+    paint();render();
+  }
+  lo.addEventListener("input",upd);hi.addEventListener("input",upd);
+  RANGES[key]={reset(){lo.value=0;hi.value=N;state[key+"Range"]=null;paint()},active:()=>!!state[key+"Range"]};
+  paint();
+}
+makeRange("lmRange","lm","lm");
+makeRange("wRange","w","W");
 document.getElementById("reset").onclick=()=>{["type","lamp","brand","cct","angle","color","dim"].forEach(k=>state[k].clear());state.ex={};
   document.querySelectorAll(".chips button").forEach(b=>b.setAttribute("aria-pressed","false"));
-  ["minLm","maxW"].forEach(id=>document.getElementById(id).value="");document.getElementById("minCri").value="0";document.getElementById("onlyPicked").value="all";render()};
+  Object.values(RANGES).forEach(r=>r.reset());document.getElementById("minCri").value="0";document.getElementById("onlyPicked").value="all";render()};
 
 const fmt=n=>n==null?"–":n.toLocaleString("de-DE");
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -97,12 +124,12 @@ function facetToggle(k,v){const t=facetTarget(k,v);
   render()}
 
 function filtered(){
-  const minLm=+document.getElementById("minLm").value||0, maxW=+document.getElementById("maxW").value||Infinity,
+  const lmR=state.lmRange, wR=state.wRange,
     minCri=+document.getElementById("minCri").value||0, view=syncViewOptions(), only=view==="picked", onlyRoom=view.startsWith("room:")?view.slice(5):null;
   const usedBy={}; assigns.forEach(a=>{(usedBy[a.leuchte]=usedBy[a.leuchte]||[]).push(a)});
   const list=rows.filter(r=>(!state.brand.size||state.brand.has(r.brand))&&(!state.cct.size||r.ccts.some(c=>state.cct.has(c)))&&
     (!state.angle.size||ANGLE_BUCKETS.some(b=>state.angle.has(b[0])&&b[2](r)))&&(!state.color.size||state.color.has(colorKey(r.color)))&&(!state.type.size||state.type.has(r.type))&&(!state.lamp.size||state.lamp.has(lampKey(r.lamp)))&&
-    (!state.dim.size||state.dim.has(r.dim))&&(!minCri||(r.cri!=null&&r.cri>=minCri))&&(!minLm||(r.lm||0)>=minLm)&&(maxW===Infinity||(r.w!=null&&r.w<=maxW))&&(!only||usedBy[r.key])&&(!onlyRoom||(usedBy[r.key]||[]).some(a=>a.raum===onlyRoom))&&exPass(r));
+    (!state.dim.size||state.dim.has(r.dim))&&(!minCri||(r.cri!=null&&r.cri>=minCri))&&(!lmR||(r.lm!=null&&r.lm>=lmR[0]&&r.lm<=lmR[1]))&&(!wR||(r.w!=null&&r.w>=wR[0]&&r.w<=wR[1]))&&(!only||usedBy[r.key])&&(!onlyRoom||(usedBy[r.key]||[]).some(a=>a.raum===onlyRoom))&&exPass(r));
   const k=state.sort;
   list.sort((a,b)=>{const x=a[k],y=b[k];if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return (x>y?1:x<y?-1:0)*state.dir});
   return {list,usedBy,only,onlyRoom};
@@ -227,7 +254,7 @@ function renderExtra(){
 document.getElementById("fExtra").addEventListener("click",e=>{const b=e.target.closest("[data-ex]");if(b)facetToggle(b.dataset.ex,b.dataset.v)});
 function activeFilterCount(){
   let n=["type","lamp","brand","cct","angle","color","dim"].reduce((s,k)=>s+state[k].size,0)+Object.values(state.ex).reduce((s,x)=>s+x.size,0);
-  if(+document.getElementById("minLm").value)n++; if(+document.getElementById("maxW").value)n++; if(+document.getElementById("minCri").value)n++; if(document.getElementById("onlyPicked").value!=="all")n++;
+  Object.values(RANGES).forEach(r=>{if(r.active())n++}); if(+document.getElementById("minCri").value)n++; if(document.getElementById("onlyPicked").value!=="all")n++;
   return n;
 }
 document.getElementById("sortSel").addEventListener("change",e=>{const [k,d]=e.target.value.split(":");state.sort=k;state.dir=+d;render()});
