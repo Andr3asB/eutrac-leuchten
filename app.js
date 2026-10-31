@@ -1,7 +1,7 @@
 // Leuchtendaten kommen aus leuchten.json, die Merkliste aus einem Sitzungs-Cookie (merkliste-store.js).
 (async()=>{
 let rows;
-try{ rows=await (await fetch("leuchten.json?v=20261031e",{cache:"no-cache"})).json() }
+try{ rows=await (await fetch("leuchten.json?v=20261031f",{cache:"no-cache"})).json() }
 catch(e){ document.getElementById("count").textContent="Leuchtendaten (leuchten.json) konnten nicht geladen werden."; return }
 rows.forEach(r=>{r.type=r.type||"Spot";r.lamp=r.lamp||"LED integriert";r.key=r.brand.replace(/\W/g,"")+"_"+r.art;r.lmw=(r.lm&&r.w&&!r.lmText)?Math.round(r.lm/r.w):null;r.cctSort=r.ccts.length?Math.min(...r.ccts):null});
 
@@ -81,13 +81,19 @@ function render(){
     <td class="n">${fmt(r.w)}</td><td class="n">${r.lmText||fmt(r.lm)}</td><td class="n">${fmt(r.lmw)}</td><td class="n">${fmt(r.cri)}</td><td>${r.dim}</td><td class="n">${fmt(r.ugr)}</td>
     <td class="mono">${r.dims}</td><td class="n">${fmt(r.price)}${r.priceSrc?`<a class="psrc" href="${esc(r.priceUrl||r.ds)}" target="_blank" rel="noopener" title="Preis von ${esc(r.priceSrc)}, Stand ${esc(r.priceDate||"?")}">${esc(r.priceSrc)}${r.priceDate?" · "+esc(r.priceDate.split("-").reverse().join("/")):""}</a>`:""}</td><td class="mono">${r.art}</td>
     <td><span class="links"><a href="${r.ds}" target="_blank" rel="noopener">${r.dsLabel||"Datenblatt"}</a>${r.img!==r.ds?`<a href="${r.img}" target="_blank" rel="noopener">${r.imgLabel||"Bilder"}</a>`:""}${r.shop?`<a href="${r.shop}" target="_blank" rel="noopener">Shop</a>`:""}</span></td></tr>`}).join("");
+  if(!list.length){
+    const noPicks=(only||onlyRoom)&&!assigns.length;
+    document.getElementById("rows").innerHTML=`<tr class="emptyrow"><td colspan="${COLS.length}"><div class="emptybox"><b>${noPicks?"Noch nichts gemerkt.":"Keine Leuchte passt zu diesen Filtern."}</b>
+      <span>${noPicks?"Klick in der Liste auf „Merken“, um Leuchten einem Raum zuzuordnen.":"Lockere einzelne Filter oder setz alle zurück."}</span>
+      <button class="btn primary" type="button" data-empty-reset>${noPicks?"Alle Leuchten anzeigen":"Filter zurücksetzen"}</button></div></td></tr>`;
+  }
 }
 
 let editing=null, confirmDel=null;
 function renderRooms(){
   const el=document.getElementById("rooms");
   if(el.contains(document.activeElement)&&document.activeElement.tagName==="INPUT")return; // nicht beim Tippen neu zeichnen
-  if(!rooms.length){el.innerHTML=`<div class="empty">Noch keine Räume angelegt. Oben einen Raum hinzufügen.</div>`;return}
+  if(!rooms.length){el.innerHTML=`<div class="empty">Noch keine Räume. Leg oben einen Raum an oder klick in der Liste direkt auf „Merken“, dann kannst du den Raum im selben Schritt anlegen.</div>`;return}
   const dis=writable()?"":" disabled";
   el.innerHTML=rooms.map(rm=>{
     const items=assigns.filter(a=>a.raum===rm.id&&byKey[a.leuchte]);
@@ -97,12 +103,12 @@ function renderRooms(){
     const gHtml=g=>{const its=items.filter(a=>a.gruppe===g);return `<div class="group"><h4><span>${esc(g)}</span>${its.length?"":`<button class="btn x" type="button" data-del-group="${rm.id}" data-g="${esc(g)}" aria-label="Verwendung ${esc(g)} entfernen"${dis}>×</button>`}</h4>${its.map(itemHtml).join("")||`<div class="empty">noch leer</div>`}</div>`};
     const n=items.reduce((s,a)=>s+a.stueck,0), w=items.reduce((s,a)=>s+byKey[a.leuchte].w*a.stueck,0), lm=items.reduce((s,a)=>s+(byKey[a.leuchte].lm||0)*a.stueck,0);
     const eur=items.reduce((s,a)=>s+(byKey[a.leuchte].price||0)*a.stueck,0), noPrice=items.filter(a=>byKey[a.leuchte].price==null).reduce((s,a)=>s+a.stueck,0);
-    const nameHtml=editing===rm.id?`<input type="text" id="ren-${rm.id}" value="${esc(rm.name)}" aria-label="Raumname">`:`<strong>${esc(rm.name)}</strong>`;
+    const nameHtml=editing===rm.id?`<input type="text" id="ren-${rm.id}" value="${esc(rm.name)}" aria-label="Raumname">`:`<h3 class="roomname">${esc(rm.name)}</h3>`;
     const del=confirmDel===rm.id?`<button class="btn danger" type="button" data-del-room="${rm.id}"${dis}>Wirklich löschen?</button>`:`<button class="btn link" type="button" data-ask-del="${rm.id}"${dis}>Löschen</button>`;
     return `<div class="room"><div class="roomhead">${nameHtml}<span class="tools"><button class="btn link" type="button" data-rename="${rm.id}"${dis}>${editing===rm.id?"Fertig":"Umbenennen"}</button>${del}</span></div>
       ${groups.map(gHtml).join("")}${ungrouped.length?`<div class="group"><h4><span>ohne Verwendung</span></h4>${ungrouped.map(itemHtml).join("")}</div>`:""}
       <div class="tools"><input type="text" placeholder="Neue Verwendung" id="ng-${rm.id}" aria-label="Neue Verwendung für ${esc(rm.name)}"${dis}><button class="btn" type="button" data-add-group="${rm.id}"${dis}>+ Verwendung</button></div>
-      <div class="sum">${n?`<b>ab ca. ${eur.toLocaleString("de-DE")} €</b><span>${n} Stk. · ${w} W · ${lm.toLocaleString("de-DE")} lm${noPrice?` · ${noPrice} Stk. ohne Preis`:""}</span>`:`<span>Noch keine Leuchten gemerkt.</span>`}</div></div>`}).join("");
+      <div class="sum">${n?`<b>ab ca. ${eur.toLocaleString("de-DE")} €</b><span>${n} Stk. · ${w.toLocaleString("de-DE",{maximumFractionDigits:1})} W · ${lm.toLocaleString("de-DE")} lm${noPrice?` · ${noPrice} Stk. ohne Preis`:""}</span>`:`<span>Noch keine Leuchten gemerkt.</span>`}</div></div>`}).join("");
   if(editing){const i=document.getElementById("ren-"+editing);if(i){i.focus();i.select()}}
 }
 
@@ -146,30 +152,49 @@ document.getElementById("rooms").addEventListener("focusout",()=>setTimeout(()=>
 
 // Merken-Dialog
 const dlg=document.getElementById("pickDlg"); let pickKey=null;
-function fillGroups(){const rm=roomById(document.getElementById("pRoom").value);
-  document.getElementById("pGroup").innerHTML=`<option value="">– keine –</option>`+(rm?(rm.gruppen||[]).map(g=>`<option>${esc(g)}</option>`).join(""):"")}
+const NEW_ROOM="__neu__"; let lastRoom=null;
+function fillGroups(){
+  const v=document.getElementById("pRoom").value, rm=roomById(v), isNew=v===NEW_ROOM;
+  const groups=isNew?["Decke"]:rm?(rm.gruppen||[]):[];
+  const sel=document.getElementById("pGroup");
+  sel.innerHTML=`<option value="">– keine –</option>`+groups.map(g=>`<option>${esc(g)}</option>`).join("");
+  sel.value=groups[0]||"";   // erste Verwendung vorauswählen, sonst landet alles unter „ohne Verwendung“
+  document.getElementById("pNewRoomRow").hidden=!isNew;
+}
 document.getElementById("pRoom").addEventListener("change",fillGroups);
 document.getElementById("rows").addEventListener("click",e=>{
+  if(e.target.closest("[data-empty-reset]")){document.getElementById("reset").click();return}
   const b=e.target.closest("[data-pick]"); if(!b||!writable())return;
-  if(!rooms.length){status("Bitte zuerst oben einen Raum anlegen.");return}
   pickKey=b.dataset.pick; const r=byKey[pickKey];
   document.getElementById("pickSub").textContent=r.brand+" · "+short(r)+" · Art.-Nr. "+r.art;
-  document.getElementById("pRoom").innerHTML=rooms.map(rm=>`<option value="${rm.id}">${esc(rm.name)}</option>`).join("");
+  const pr=document.getElementById("pRoom");
+  pr.innerHTML=rooms.map(rm=>`<option value="${rm.id}">${esc(rm.name)}</option>`).join("")+`<option value="${NEW_ROOM}">+ Neuer Raum …</option>`;
+  pr.value=rooms.length?(roomById(lastRoom)?lastRoom:rooms[0].id):NEW_ROOM;
+  document.getElementById("pNewRoom").value="";
   fillGroups(); document.getElementById("pNewGroup").value=""; document.getElementById("pQty").value="1"; document.getElementById("pickErr").hidden=true;
   dlg.showModal();
+  if(pr.value===NEW_ROOM)document.getElementById("pNewRoom").focus();
 });
 document.getElementById("pickCancel").onclick=()=>dlg.close();
 document.getElementById("pickForm").addEventListener("submit",async e=>{
-  e.preventDefault(); const roomId=document.getElementById("pRoom").value, rm=roomById(roomId); if(!rm)return;
+  e.preventDefault(); let roomId=document.getElementById("pRoom").value, rm=roomById(roomId);
+  const errEl=document.getElementById("pickErr");
+  if(roomId===NEW_ROOM){
+    const name=document.getElementById("pNewRoom").value.trim();
+    if(!name){errEl.hidden=false;errEl.textContent="Bitte einen Namen für den neuen Raum eingeben.";document.getElementById("pNewRoom").focus();return}
+    rm={id:slug(name)+"-"+Date.now().toString(36),name,gruppen:["Decke"],pos:Date.now(),isNew:true};roomId=rm.id;
+  }
+  if(!rm)return;
   const ng=document.getElementById("pNewGroup").value.trim(); const g=ng||document.getElementById("pGroup").value;
   const qty=Math.max(1,Math.min(50,+document.getElementById("pQty").value||1));
   const btn=document.getElementById("pickSave"); btn.disabled=true;
   try{
-    if(ng&&!(rm.gruppen||[]).includes(ng))await db.doc("raeume/"+roomId).update({gruppen:[...(rm.gruppen||[]),ng]});
+    if(rm.isNew){const gr=ng&&!rm.gruppen.includes(ng)?[...rm.gruppen,ng]:rm.gruppen;await db.doc("raeume/"+roomId).set({name:rm.name,gruppen:gr,pos:rm.pos});rm.gruppen=gr}
+    else if(ng&&!(rm.gruppen||[]).includes(ng))await db.doc("raeume/"+roomId).update({gruppen:[...(rm.gruppen||[]),ng]});
     const existing=assigns.find(a=>a.leuchte===pickKey&&a.raum===roomId&&(a.gruppe||"")===g);
     if(existing)await db.doc("zuordnung/"+existing.id).update({stueck:existing.stueck+qty});
     else await db.collection("zuordnung").add({leuchte:pickKey,raum:roomId,gruppe:g,stueck:qty,t:Date.now()});
-    dlg.close();
+    lastRoom=roomId; dlg.close();
   }catch(err){const p=document.getElementById("pickErr");p.hidden=false;p.textContent=err&&["too_large","conflict","forbidden","not_found","network"].includes(err.code)?err.message:err&&err.code==="invalid_argument"?"Keine Berechtigung zum Ändern der Merkliste.":"Speichern fehlgeschlagen. Bitte erneut versuchen."}
   finally{btn.disabled=false}
 });

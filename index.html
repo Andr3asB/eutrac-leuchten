@@ -4,15 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Leuchten für EUTRAC</title>
-<link rel="stylesheet" href="fonts.css?v=20261031e">
-<link rel="stylesheet" href="style.css?v=20261031e">
+<link rel="stylesheet" href="fonts.css?v=20261031f">
+<link rel="stylesheet" href="style.css?v=20261031f">
 </head>
 <body>
+<a class="skiplink" href="#leuchten">Zur Leuchtenliste springen</a>
 <div class="wrap">
   <header class="pagehead">
     <div class="titlerow"><h1>Leuchten für EUTRAC</h1><button type="button" class="btn tourbtn" id="tourBtn" aria-label="Einführungstour starten">? Tour</button></div>
     <p class="lead">Leuchten für die EUTRAC‑3‑Phasen‑Schienen: das komplette SLV‑Sortiment ohne DALI (Spots, Pendel, Linearleuchten) plus phasendimmbare Alternativen von Deko‑Light, ISOLED, Paulmann und Molto Luce. Stand: 31.10.2026.</p>
   </header>
+<main id="main">
 
   <section class="panel" id="mlPanel" aria-labelledby="mlh">
     <div class="panelhead">
@@ -39,8 +41,8 @@
     <div class="f"><button class="reset" id="reset" type="button">Filter zurücksetzen</button></div>
   </section>
 
-  <div class="count" id="count"></div>
-  <div class="tablebox">
+  <div class="count" id="count" tabindex="-1"></div>
+  <div class="tablebox" id="leuchten" tabindex="-1">
     <table>
       <thead><tr id="head"></tr></thead>
       <tbody id="rows"></tbody>
@@ -54,10 +56,11 @@
     <div><b>NUMINOS:</b> alle 78 Artikelnummern einzeln gegen das SLV‑Datenblatt geprüft. Das Datenblatt‑PDF enthält das Produktbild; „Bilder“ öffnet eine Bildersuche ohne Werbung (DuckDuckGo).</div>
     <div><b>Deko‑Light Lucea:</b> 3000/4000 K am Strahler umschaltbar. <b>ISOLED:</b> Zoom‑Strahler, dimmbar etwa 20–100 %.</div>
     <div><b>SLV‑Sortiment:</b> 177 weitere SLV‑Artikel aus dem Sortiment von leuchtmittel-verkauf.de (alle SLV‑3‑Phasen‑Leuchten dort, ohne DALI‑Varianten, weil SLV‑DALI‑Adapter laut SLV nicht auf EUTRAC passen). Technische Werte, Bild und Preis stammen von dieser Shopseite, die Datenblatt‑Links von SLV. Dimmung „k. A.“ heißt: Der Shop nennt keine Dimmart. Vor dem Kauf im Datenblatt prüfen. Bei mehreren Lumenwerten (z. B. SIGHT, TRACKSPOT P90) hängt der Wert von Länge oder Leistungsstufe ab.</div>
-    <div><b>Paulmann ProRail3 Zeuz / Molto Luce MAG TRACK:</b> ergänzt im Oktober 2026, Werte von den Herstellerseiten (paulmann.com, moltoluce.com). Paulmann: alle 18 Varianten, Dimmung „R+C“ (Phasenabschnitt), ProRail3 laut Paulmann-Planungshilfe EUTRAC‑kompatibel. Molto Luce: Hersteller nennt „TRIAC“, Händler Phasenabschnitt – am eigenen Aktor testen.</div>
+    <div><b>Paulmann ProRail3 Zeuz / Molto Luce MAG TRACK:</b> ergänzt im Oktober 2026, Werte von den Herstellerseiten (paulmann.com, moltoluce.com). Paulmann: alle 18 Varianten, Dimmung „R+C“ (Phasenabschnitt), ProRail3 laut Paulmann-Planungshilfe EUTRAC‑kompatibel. Molto Luce: laut Datenblatt Phasenabschnitt, Adapter nach Global-Standard.</div>
     <div><b>Geprüft, aber ohne Phasendimmung:</b> BEGA (3‑Phasen‑Strahler nur DALI), LEDVANCE Tracklight Spot Zoom Dim (Schieberegler am Strahler), XAL (DALI oder Potentiometer).</div>
-    <div><b>Nicht aufgenommen:</b> LEDVANCE Tracklight Spot Zoom Dim (Drehregler am Strahler statt Phasendimmung) und SLV TRACKSPOT C (Dimmbarkeit nicht angegeben).</div>
+    <div><b>Nicht aufgenommen:</b> SLV TRACKSPOT C (Dimmbarkeit nicht angegeben).</div>
   </div>
+</main>
   <footer class="sitefoot"><button type="button" class="linkbtn" id="tourLink">Tour</button><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
 </div>
 
@@ -69,6 +72,7 @@
       <div class="f"><label for="pRoom">Raum</label><select id="pRoom" required></select></div>
       <div class="f"><label for="pGroup">Verwendung</label><select id="pGroup"></select></div>
     </div>
+    <div class="f" id="pNewRoomRow" hidden><label for="pNewRoom">Name des neuen Raums</label><input type="text" id="pNewRoom" placeholder="z. B. Wohnzimmer" maxlength="60" autocomplete="off"></div>
     <div class="row">
       <div class="f"><label for="pNewGroup">oder neue Verwendung</label><input type="text" id="pNewGroup" placeholder="z. B. Leseecke"></div>
       <div class="f"><label for="pQty">Stückzahl</label><input type="number" id="pQty" min="1" max="50" value="1"></div>
@@ -109,10 +113,10 @@
   </form>
 </dialog>
 
-<script src="config.js?v=20261031e"></script>
-<script src="vendor/supabase-2.117.3.js?v=20261031e"></script>
-<script src="merkliste-store.js?v=20261031e"></script>
-<script src="tour.js?v=20261031e"></script>
-<script src="app.js?v=20261031e"></script>
+<script src="config.js?v=20261031f"></script>
+<script src="vendor/supabase-2.117.3.js?v=20261031f"></script>
+<script src="merkliste-store.js?v=20261031f"></script>
+<script src="tour.js?v=20261031f"></script>
+<script src="app.js?v=20261031f"></script>
 </body>
 </html>
