@@ -9,7 +9,7 @@
     {sel:"#cards .beam",title:"Lichtkegel",text:"Der Kegel ist im echten Abstrahlwinkel gezeichnet und in der Lichtfarbe eingefärbt: 2700 K bernstein, 4000 K fast weiß. Bei Zoom-Strahlern zeigt der hellere Bereich den größten Winkel."},
     {sel:"#viewTools .tools",title:"Sortieren und Tabelle",text:"Sortier nach Lumen, Preis oder Effizienz. Mit „Tabelle“ vergleichst du alle Werte Spalte für Spalte. Spalten, die bei allen Treffern gleich sind, treten zurück."},
     {sel:"#cards [data-pick]|#rows [data-pick]",title:"Merken",text:"Damit ordnest du eine Leuchte einem Raum, einer Verwendung und einer Stückzahl zu. Gibt es den Raum noch nicht, legst du ihn im selben Schritt an."},
-    {sel:"#mlPanel|#mbar",title:"Lichtplan",text:"Hier sammeln sich deine gemerkten Leuchten nach Raum und Verwendung, mit Stückzahl und Gesamtsumme aus Preis und Watt."},
+    {sel:"#mlPanel|#mbar",title:"Lichtplan",text:"Hier sammeln sich deine gemerkten Leuchten nach Raum und Verwendung, mit Stückzahl und Gesamtsumme. Über „Drucken oder als PDF speichern“ entsteht eine Bestellliste für den Elektriker."},
     {sel:"#shareBar button",title:"Gemeinsam bearbeiten",text:"Damit wird aus deinem Lichtplan eine gemeinsame Liste, die du per Link mit Familie oder Elektriker teilst. Auf Wunsch schützt ein Passwort die Liste."},
     {sel:".notes",title:"Hinweise",text:"Hier steht, was „Abschnitt“ und „An-/Abschnitt“ bei der Dimmung bedeuten und woher die Daten stammen. Teste vor dem Kauf eine Leuchte am eigenen Dimmer oder KNX-Aktor."},
     {sel:"#tourBtn",title:"Fertig!",text:"Über „Tour“ oben rechts startest du die Einführung jederzeit erneut. Viel Erfolg bei der Planung!"}

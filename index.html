@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Leuchten für EUTRAC</title>
-<link rel="stylesheet" href="fonts.css?v=20261101b">
-<link rel="stylesheet" href="style.css?v=20261101b">
+<link rel="stylesheet" href="fonts.css?v=20261101c">
+<link rel="stylesheet" href="style.css?v=20261101c">
 </head>
 <body>
 <a class="skiplink" href="#leuchten">Zur Leuchtenliste springen</a>
@@ -72,10 +72,10 @@
       <div><b>Dimmung:</b> „Abschnitt“ = laut Datenblatt nur Phasenabschnitt (Trailing Edge), „An‑/Abschnitt“ = beides. Ein Test am eigenen KNX‑Aktor ersetzt das nicht.</div>
       <div><b>NUMINOS:</b> alle 78 Artikelnummern einzeln gegen das SLV‑Datenblatt geprüft. Das Datenblatt‑PDF enthält das Produktbild; „Bilder“ öffnet eine Bildersuche ohne Werbung (DuckDuckGo).</div>
       <div><b>Deko‑Light Lucea:</b> 3000/4000 K am Strahler umschaltbar. <b>ISOLED:</b> Zoom‑Strahler, dimmbar etwa 20–100 %.</div>
-      <div><b>SLV‑Sortiment:</b> 177 weitere SLV‑Artikel aus dem Sortiment von leuchtmittel-verkauf.de (alle SLV‑3‑Phasen‑Leuchten dort, ohne DALI‑Varianten, weil SLV‑DALI‑Adapter laut SLV nicht auf EUTRAC passen). Technische Werte, Bild und Preis stammen von dieser Shopseite, die Datenblatt‑Links von SLV. Dimmung „k. A.“ heißt: Der Shop nennt keine Dimmart. Vor dem Kauf im Datenblatt prüfen. Bei mehreren Lumenwerten (z. B. SIGHT, TRACKSPOT P90) hängt der Wert von Länge oder Leistungsstufe ab.</div>
+      <div><b>SLV‑Sortiment:</b> 177 weitere SLV‑Artikel aus dem Sortiment von leuchtmittel-verkauf.de (alle SLV‑3‑Phasen‑Leuchten dort, ohne DALI‑Varianten, weil SLV‑DALI‑Adapter laut SLV nicht auf EUTRAC passen). Technische Werte, Bild und Preis stammen von dieser Shopseite, die Datenblatt‑Links von SLV. Die englischen Shopbezeichnungen sind auf Produktfamilie und Unterscheidungsmerkmale gekürzt; die Originalbezeichnung erscheint beim Darüberfahren über den Namen. Dimmung „k. A.“ heißt: Der Shop nennt keine Dimmart. Vor dem Kauf im Datenblatt prüfen. Bei mehreren Lumenwerten (z. B. SIGHT, TRACKSPOT P90) hängt der Wert von Länge oder Leistungsstufe ab.</div>
       <div><b>Paulmann ProRail3 Zeuz / Molto Luce MAG TRACK:</b> ergänzt im Oktober 2026, Werte von den Herstellerseiten (paulmann.com, moltoluce.com). Paulmann: alle 18 Varianten, Dimmung „R+C“ (Phasenabschnitt), ProRail3 laut Paulmann-Planungshilfe EUTRAC‑kompatibel. Molto Luce: laut Datenblatt Phasenabschnitt, Adapter nach Global-Standard.</div>
       <div><b>Geprüft, aber ohne Phasendimmung:</b> BEGA (3‑Phasen‑Strahler nur DALI), LEDVANCE Tracklight Spot Zoom Dim (Schieberegler am Strahler), XAL (DALI oder Potentiometer).</div>
-      <div><b>Nicht aufgenommen:</b> SLV TRACKSPOT C (Dimmbarkeit nicht angegeben).</div>
+      <div><b>SLV TRACKSPOT C:</b> enthalten, aber der Shop nennt keine Dimmart (Dimmung „k. A.“). Vor dem Kauf im Datenblatt prüfen.</div>
     </div>
   </main>
 
@@ -87,11 +87,14 @@
     <div class="status" id="pickStatus">Merkliste wird geladen …</div>
     <div class="rooms" id="rooms"></div>
     <div class="plantotal" id="planTotal" hidden></div>
+    <button type="button" class="ghost printbtn" id="printBtn" hidden>Drucken oder als PDF speichern</button>
   </aside>
 </div>
 
 <button type="button" class="mbar" id="mbar" aria-controls="mlPanel"><span><b id="mbarTitle">Lichtplan</b><small id="mbarSub">noch leer</small></span><span class="mbtn">Ansehen</span></button>
 <div class="scrim" id="scrim" data-close-sheet></div>
+
+<section class="printplan" id="printPlan" aria-hidden="true"></section>
 
 <footer class="sitefoot"><button type="button" class="linkbtn" id="tourLink">Tour</button><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
 
@@ -144,10 +147,10 @@
   </form>
 </dialog>
 
-<script src="config.js?v=20261101b"></script>
-<script src="vendor/supabase-2.117.3.js?v=20261101b"></script>
-<script src="merkliste-store.js?v=20261101b"></script>
-<script src="tour.js?v=20261101b"></script>
-<script src="app.js?v=20261101b"></script>
+<script src="config.js?v=20261101c"></script>
+<script src="vendor/supabase-2.117.3.js?v=20261101c"></script>
+<script src="merkliste-store.js?v=20261101c"></script>
+<script src="tour.js?v=20261101c"></script>
+<script src="app.js?v=20261101c"></script>
 </body>
 </html>

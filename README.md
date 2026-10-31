@@ -8,7 +8,7 @@ Filterbare Übersicht über Leuchten für EUTRAC-3-Phasen-Stromschienen (SLV, De
 |---|---|
 | `index.html` | Seitenstruktur |
 | `style.css` | Gestaltung |
-| `leuchten.json` | **Leuchtendaten** – eine Leuchte pro Zeile; hier ergänzen/ändern |
+| `leuchten.json` | **Leuchtendaten** – eine Leuchte pro Zeile; hier ergänzen/ändern. `model` ist der angezeigte Name, `modelOrig` (falls vorhanden) die Originalbezeichnung im Shop |
 | `app.js` | Filter, Tabelle, Merkliste |
 | `tour.js` | Einführungstour (beim ersten Besuch automatisch, sonst über „Tour“ in der Fußzeile) |
 | `merkliste-store.js` | Speichert die Merkliste: lokal im Sitzungs-Cookie oder gemeinsam (verschlüsselt) in Supabase |

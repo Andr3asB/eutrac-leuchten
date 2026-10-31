@@ -141,8 +141,9 @@ main{min-width:0;display:flex;flex-direction:column;gap:16px}
 .pick{border:none;background:var(--ink);color:var(--karte);border-radius:999px;padding:10px 20px;font-weight:650;cursor:pointer;min-height:42px;white-space:nowrap}
 .pick:hover{opacity:.9}
 .card.on .pick{background:var(--gemerkt);color:#fff}
-.links{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13.5px}
-.links a{display:inline-block;padding:3px 0;text-decoration:underline}
+.links{display:flex;flex-wrap:wrap;gap:2px 8px;font-size:13.5px;margin:0 -6px}
+.links a{display:inline-flex;align-items:center;min-height:36px;padding:4px 6px;text-decoration:underline;border-radius:6px}
+.links a:hover{background:var(--feld)}
 
 /* Tabelle */
 .tablebox{background:var(--karte);border-radius:var(--r-lg);overflow:auto;max-height:calc(100vh - 140px)}
@@ -163,7 +164,8 @@ td .used{display:block;margin-top:4px;white-space:normal;max-width:160px}
 .pick.sm{padding:6px 14px;min-height:32px;font-size:13.5px}
 .cct{display:inline-flex;align-items:center;gap:3px}
 .dot{width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
-td .links{flex-wrap:nowrap;gap:10px}
+td .links{flex-wrap:nowrap;gap:2px;margin:-6px -6px}
+td .links a{min-height:32px}
 .emptybox{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:28px 20px;background:var(--karte);border-radius:var(--r-lg);grid-column:1/-1}
 .emptybox span{color:var(--schiefer)}
 .emptyrow td{padding:0;white-space:normal}
@@ -308,4 +310,29 @@ dialog .linkrow input{flex:1;min-width:0;font-size:12.5px}
   .store td{border:none;padding:2px 0}
   .store td::before{content:attr(data-label);display:block;font-size:12px;color:var(--schiefer)}
   .store code{white-space:normal}
+}
+.printbtn{width:100%}
+.printplan{display:none}
+@media print{
+  @page{margin:14mm 12mm}
+  body{background:#fff;color:#000;padding:0;font-size:10.5pt}
+  body > *:not(.printplan){display:none!important}
+  .printplan{display:block}
+  .printplan h1{font-size:22pt;font-weight:800;font-stretch:120%;margin:0}
+  .printplan header p{margin:2pt 0 10pt;color:#444}
+  .printplan h2{font-size:13pt;margin:12pt 0 4pt;font-weight:750}
+  .printplan h3{font-size:11.5pt;margin:8pt 0 2pt;border-bottom:1px solid #999}
+  .printplan h4{font-size:10pt;margin:4pt 0 1pt;color:#444;font-weight:650}
+  .printplan table{width:100%;border-collapse:collapse;font-size:9pt}
+  .printplan thead th:nth-child(3){width:34%}
+  .printplan td:nth-child(7){white-space:normal;max-width:24mm}
+  .printplan th,.printplan td{border-bottom:1px solid #ccc;padding:3pt 4pt;text-align:left;vertical-align:top;position:static;background:none;color:#000;white-space:normal}
+  .printplan th{font-weight:650;color:#333;border-bottom:1.5px solid #000}
+  .printplan .n{text-align:right;white-space:nowrap}
+  .printplan tfoot td{border-top:1.5px solid #000;border-bottom:none}
+  .printplan ul{margin:0;padding-left:14pt}
+  .printplan li span{color:#555;margin-left:4pt}
+  .printplan .proom{break-inside:avoid}
+  .printplan tr{break-inside:avoid}
+  .pnote{margin-top:12pt;font-size:8.5pt;color:#555}
 }

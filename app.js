@@ -1,7 +1,7 @@
 // Leuchtendaten kommen aus leuchten.json, die Merkliste aus einem Sitzungs-Cookie (merkliste-store.js).
 (async()=>{
 let rows;
-try{ rows=await (await fetch("leuchten.json?v=20261101b",{cache:"no-cache"})).json() }
+try{ rows=await (await fetch("leuchten.json?v=20261101c",{cache:"no-cache"})).json() }
 catch(e){ document.getElementById("count").textContent="Leuchtendaten (leuchten.json) konnten nicht geladen werden."; return }
 rows.forEach(r=>{r.type=r.type||"Spot";r.lamp=r.lamp||"LED integriert";r.key=r.brand.replace(/\W/g,"")+"_"+r.art;r.lmw=(r.lm&&r.w&&!r.lmText)?Math.round(r.lm/r.w):null;r.cctSort=r.ccts.length?Math.min(...r.ccts):null});
 
@@ -155,7 +155,7 @@ function cardHtml(r,u,an,dis){
     <div class="beam">${beam(r)}<span class="deg">${esc(r.angleLabel)}</span></div>
     <div class="body">
       <div class="ctop"><span class="brand">${esc(r.brand)}</span><span class="art">Art.-Nr. ${esc(r.art)}</span></div>
-      <h3 class="name">${esc(r.model)}</h3>
+      <h3 class="name"${r.modelOrig?` title="Im Shop: ${esc(r.modelOrig)}"`:""}>${esc(r.model)}</h3>
       ${r.hinweis?`<p class="hint">${esc(r.hinweis)}</p>`:""}
       <dl class="specs">${specs}</dl>
       ${u.length?`<p class="used">Gemerkt: ${usedText(u)}</p>`:""}
@@ -167,7 +167,7 @@ function cardHtml(r,u,an,dis){
 function tableRowHtml(r,u,dis){
   return `<tr class="${u.length?"picked":""}">
     <td><button class="pick sm" type="button" data-pick="${r.key}"${dis}>Merken</button>${u.length?`<span class="used">${usedText(u)}</span>`:""}</td>
-    <td class="namecell"><span class="brand">${esc(r.brand)}</span><span class="model">${esc(r.model)}</span>${r.hinweis?`<span class="hint">${esc(r.hinweis)}</span>`:""}</td><td>${r.type}<span class="brand">${esc(r.lamp)}</span></td>
+    <td class="namecell"><span class="brand">${esc(r.brand)}</span><span class="model"${r.modelOrig?` title="Im Shop: ${esc(r.modelOrig)}"`:""}>${esc(r.model)}</span>${r.hinweis?`<span class="hint">${esc(r.hinweis)}</span>`:""}</td><td>${r.type}<span class="brand">${esc(r.lamp)}</span></td>
     <td><span class="cct">${r.ccts.map(c=>`<span class="dot" style="background:${CCT_COLOR[c]}"></span>`).join("")}${esc(r.cctLabel)}</span></td>
     <td>${esc(r.angleLabel)}</td><td>${esc(r.color)}</td>
     <td class="n">${fmt(r.w)}</td><td class="n">${r.lmText||fmt(r.lm)}</td><td class="n">${fmt(r.lmw)}</td><td class="n">${fmt(r.cri)}</td><td>${esc(r.dim)}</td><td class="n">${fmt(r.ugr)}</td>
@@ -231,11 +231,35 @@ function updatePlanSummary(){
   const n=items.reduce((s,a)=>s+a.stueck,0), w=items.reduce((s,a)=>s+(byKey[a.leuchte].w||0)*a.stueck,0);
   const eur=items.reduce((s,a)=>s+(byKey[a.leuchte].price||0)*a.stueck,0), noPrice=items.filter(a=>byKey[a.leuchte].price==null).length;
   const tot=document.getElementById("planTotal");
-  tot.hidden=!n;
+  tot.hidden=!n; document.getElementById("printBtn").hidden=!n;
   tot.innerHTML=n?`<span>${n} ${n===1?"Leuchte":"Leuchten"}, ${w.toLocaleString("de-DE",{maximumFractionDigits:1})} W${noPrice?`, ${noPrice}× ohne Preis`:""}</span><b>ab ${Math.round(eur).toLocaleString("de-DE")} €</b>`:"";
   document.getElementById("mbarTitle").textContent=n?`Lichtplan: ${n} ${n===1?"Leuchte":"Leuchten"}`:"Lichtplan";
   document.getElementById("mbarSub").textContent=n?`${rooms.length} ${rooms.length===1?"Raum":"Räume"}, ab ${Math.round(eur).toLocaleString("de-DE")} €`:rooms.length?`${rooms.length} ${rooms.length===1?"Raum":"Räume"}, noch nichts gemerkt`:"noch leer";
 }
+// Druckansicht: Bestellliste nach Artikel und Aufstellung nach Raum
+function buildPrint(){
+  const items=assigns.filter(a=>byKey[a.leuchte]&&roomById(a.raum));
+  const el=document.getElementById("printPlan");
+  if(!items.length){el.innerHTML="";return}
+  const eur=v=>v==null?"–":v.toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";
+  const byArt=new Map();items.forEach(a=>{const e=byArt.get(a.leuchte)||{r:byKey[a.leuchte],n:0};e.n+=a.stueck;byArt.set(a.leuchte,e)});
+  const arts=[...byArt.values()].sort((x,y)=>x.r.brand.localeCompare(y.r.brand)||x.r.model.localeCompare(y.r.model,"de"));
+  const total=arts.reduce((s,e)=>s+(e.r.price||0)*e.n,0), totalW=arts.reduce((s,e)=>s+(e.r.w||0)*e.n,0), nTot=arts.reduce((s,e)=>s+e.n,0), noPrice=arts.filter(e=>e.r.price==null).length;
+  const today=new Date().toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"});
+  let h=`<header><h1>Lichtplan</h1><p>Leuchten für EUTRAC-3-Phasen-Schienen · Stand ${today} · ${nTot} Leuchten in ${rooms.length} ${rooms.length===1?"Raum":"Räumen"}</p></header>
+  <h2>Bestellliste</h2>
+  <table><thead><tr><th class="n">Stück</th><th>Art.-Nr.</th><th>Leuchte</th><th>Lichtfarbe</th><th>Winkel</th><th class="n">Watt</th><th class="n">Lumen</th><th>Dimmung</th><th class="n">Einzelpreis ab</th><th class="n">Summe ab</th></tr></thead><tbody>
+  ${arts.map(({r,n})=>`<tr><td class="n"><b>${n}</b></td><td>${esc(r.art)}</td><td><b>${esc(r.brand)}</b> ${esc(r.model)}</td><td>${esc(r.cctLabel)}</td><td>${esc(r.angleLabel)}</td><td class="n">${fmt(r.w)}</td><td class="n">${ATTR.lm.show(r).replace(/ lm$/,"")}</td><td>${esc(r.dim)}</td><td class="n">${eur(r.price)}</td><td class="n">${r.price==null?"–":eur(r.price*n)}</td></tr>`).join("")}
+  </tbody><tfoot><tr><td class="n"><b>${nTot}</b></td><td colspan="4">Gesamt${noPrice?` (${noPrice} Artikel ohne Preis)`:""}</td><td class="n">${fmt(Math.round(totalW*10)/10)}</td><td colspan="3"></td><td class="n"><b>${eur(total)}</b></td></tr></tfoot></table>
+  <h2>Nach Raum</h2>`;
+  rooms.forEach(rm=>{const its=items.filter(a=>a.raum===rm.id);if(!its.length)return;
+    const groups=[...new Set(its.map(a=>a.gruppe||""))];
+    h+=`<section class="proom"><h3>${esc(rm.name)}</h3>`+groups.map(g=>`<h4>${g?esc(g):"ohne Verwendung"}</h4><ul>${its.filter(a=>(a.gruppe||"")===g).map(a=>{const r=byKey[a.leuchte];return `<li><b>${a.stueck}×</b> ${esc(r.brand)} ${esc(r.model)}, ${esc(r.cctLabel)}, ${esc(r.angleLabel)}, ${esc(r.color)} <span>Art.-Nr. ${esc(r.art)}</span></li>`}).join("")}</ul>`).join("")+`</section>`});
+  h+=`<p class="pnote">„ab“-Preise aus Onlineshops, nicht tagesaktuell. Dimmung laut Datenblatt; vor dem Kauf eine Leuchte am eigenen Dimmer bzw. KNX-Aktor testen. Erstellt mit ${esc(location.origin+location.pathname)}</p>`;
+  el.innerHTML=h;
+}
+document.getElementById("printBtn").onclick=()=>{buildPrint();window.print()};
+window.addEventListener("beforeprint",buildPrint);
 function renderRooms(){
   updatePlanSummary();
   const el=document.getElementById("rooms");
