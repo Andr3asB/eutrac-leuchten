@@ -15,7 +15,7 @@ Filterbare Übersicht über Leuchten für EUTRAC-3-Phasen-Stromschienen (SLV, De
 | `config.js` | Zugangsdaten für Supabase (leer = nur lokale Merkliste) |
 | `supabase/schema.sql` | Datenbank-Einrichtung für gemeinsame Listen |
 | `impressum.html`, `datenschutz.html` | Impressum und Datenschutzerklärung |
-| `fonts/`, `fonts.css` | Schriften Archivo und IBM Plex Mono, lokal ausgeliefert (SIL OFL) |
+| `fonts/`, `fonts.css` | Schrift Archivo (variable Breite und Stärke), lokal ausgeliefert (SIL OFL) |
 | `vendor/` | supabase-js 2.117.3 (MIT), lokal ausgeliefert |
 
 Die Seite lädt keine Ressourcen von fremden Servern. Verbindungen zu Supabase entstehen nur bei Nutzung einer gemeinsamen Liste.

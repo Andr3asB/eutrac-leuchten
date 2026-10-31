@@ -1,7 +1,7 @@
 // Leuchtendaten kommen aus leuchten.json, die Merkliste aus einem Sitzungs-Cookie (merkliste-store.js).
 (async()=>{
 let rows;
-try{ rows=await (await fetch("leuchten.json?v=20261031f",{cache:"no-cache"})).json() }
+try{ rows=await (await fetch("leuchten.json?v=20261101a",{cache:"no-cache"})).json() }
 catch(e){ document.getElementById("count").textContent="Leuchtendaten (leuchten.json) konnten nicht geladen werden."; return }
 rows.forEach(r=>{r.type=r.type||"Spot";r.lamp=r.lamp||"LED integriert";r.key=r.brand.replace(/\W/g,"")+"_"+r.art;r.lmw=(r.lm&&r.w&&!r.lmText)?Math.round(r.lm/r.w):null;r.cctSort=r.ccts.length?Math.min(...r.ccts):null});
 
@@ -14,17 +14,18 @@ const COLS=[
   {k:"w",t:"Watt",n:1},{k:"lm",t:"Lumen",n:1},{k:"lmw",t:"lm/W",n:1},{k:"cri",t:"CRI",n:1},{k:"dim",t:"Dimmung"},{k:"ugr",t:"UGR ≤",n:1},
   {k:"dims",t:"Maße cm"},{k:"price",t:"Preis ab €",n:1},{k:"art",t:"Art.-Nr."},{k:"links",t:"Details",nosort:1}
 ];
-const CCT_COLOR={2700:"#ffb45c",3000:"#ffcf86",4000:"#fff1d6"};
-const state={type:new Set(),lamp:new Set(),brand:new Set(),cct:new Set(),angle:new Set(),color:new Set(),dim:new Set(),sort:"lm",dir:1};
+const CCT_COLOR={2700:"#FFB04A",3000:"#FFD385",4000:"#FFF1D2"};
+const state={type:new Set(),lamp:new Set(),brand:new Set(),cct:new Set(),angle:new Set(),color:new Set(),dim:new Set(),ex:{},sort:"lm",dir:-1,view:"cards"};
 let rooms=[]; let assigns=[]; let db=null; let canWrite=true; let dbReady=false;
 
-function chipGroup(id,key,values,label=v=>v){
+function chipGroup(id,key,values,label=v=>v,swatch=null){
   const el=document.getElementById(id);
   values.forEach(v=>{const b=document.createElement("button");b.type="button";b.textContent=label(v);b.setAttribute("aria-pressed","false");
+    if(swatch){const i=document.createElement("i");i.className="sw";i.style.background=swatch(v);b.prepend(i)}
     b.onclick=()=>{state[key].has(v)?state[key].delete(v):state[key].add(v);b.setAttribute("aria-pressed",state[key].has(v));render()};el.appendChild(b)});
 }
 chipGroup("fBrand","brand",[...new Set(rows.map(r=>r.brand))]);
-chipGroup("fCct","cct",[2700,3000,4000],v=>v+" K");
+chipGroup("fCct","cct",[2700,3000,4000],v=>v+" K",v=>CCT_COLOR[v]);
 chipGroup("fAngle","angle",ANGLE_BUCKETS.map(b=>b[0]),v=>ANGLE_BUCKETS.find(b=>b[0]===v)[1]);
 chipGroup("fType","type",["Spot","Pendel","Linear/Fläche"]);
 chipGroup("fLamp","lamp",["LED integriert","wechselbar"],v=>v==="wechselbar"?"wechselbar (GU10/E27)":v);
@@ -37,7 +38,7 @@ COLS.forEach(c=>{const th=document.createElement("th");if(c.n)th.className="n";
     b.onclick=()=>{state.dir=state.sort===c.k?-state.dir:1;state.sort=c.k;render()};th.appendChild(b)}
   head.appendChild(th)});
 ["minLm","maxW","minCri","onlyPicked"].forEach(id=>document.getElementById(id).addEventListener("input",render));
-document.getElementById("reset").onclick=()=>{["type","lamp","brand","cct","angle","color","dim"].forEach(k=>state[k].clear());
+document.getElementById("reset").onclick=()=>{["type","lamp","brand","cct","angle","color","dim"].forEach(k=>state[k].clear());state.ex={};
   document.querySelectorAll(".chips button").forEach(b=>b.setAttribute("aria-pressed","false"));
   ["minLm","maxW"].forEach(id=>document.getElementById(id).value="");document.getElementById("minCri").value="0";document.getElementById("onlyPicked").value="all";render()};
 
@@ -59,41 +60,187 @@ function syncViewOptions(){
   }
   return sel.value;
 }
-function render(){
+// Eigenschaften für Vergleich, Karten und Unterschiede (feste Reihenfolge, damit Karten untereinander vergleichbar sind)
+const ATTRS=[
+  {k:"lm",t:"Lichtstrom",num:1,u:"lm",v:r=>r.lm,show:r=>r.lmText?r.lmText.replace(/\d{4,}/g,d=>fmt(+d)).replace(/\s*\/\s*/g," / ").replace(/–/g," bis ")+" lm":r.lm==null?"–":fmt(r.lm)+" lm"},
+  {k:"w",t:"Leistung",num:1,u:"W",v:r=>r.w,show:r=>r.w==null?"–":fmt(r.w)+" W"},
+  {k:"lmw",t:"Effizienz",num:1,u:"lm/W",v:r=>r.lmw,show:r=>r.lmw==null?"–":fmt(r.lmw)+" lm/W"},
+  {k:"cct",t:"Lichtfarbe",v:r=>!r.cctLabel||r.cctLabel==="–"?"k. A.":r.cctLabel},
+  {k:"angle",t:"Winkel",v:r=>!r.angleLabel||r.angleLabel==="–"?"k. A.":r.angleLabel},
+  {k:"cri",t:"CRI",v:r=>r.cri==null?"k. A.":String(r.cri)},
+  {k:"ugr",t:"UGR",v:r=>r.ugr==null?"k. A.":"≤ "+r.ugr},
+  {k:"dim",t:"Dimmung",v:r=>r.dim},
+  {k:"color",t:"Gehäuse",v:r=>r.color},
+  {k:"type",t:"Typ",v:r=>r.type},
+  {k:"lamp",t:"Leuchtmittel",v:r=>r.lamp},
+  {k:"brand",t:"Hersteller",v:r=>r.brand},
+  {k:"price",t:"Preis ab",num:1,u:"€",v:r=>r.price},
+  {k:"dims",t:"Maße (cm)",v:r=>r.dims,wide:1}
+];
+const ATTR=Object.fromEntries(ATTRS.map(x=>[x.k,x]));
+const CARD_SPECS=["lm","w","lmw","cct","angle","cri","ugr","dim","color","type","lamp","dims"];
+const exPass=r=>Object.entries(state.ex).every(([k,set])=>!set.size||set.has(ATTR[k].v(r)));
+
+function filtered(){
   const minLm=+document.getElementById("minLm").value||0, maxW=+document.getElementById("maxW").value||Infinity,
     minCri=+document.getElementById("minCri").value||0, view=syncViewOptions(), only=view==="picked", onlyRoom=view.startsWith("room:")?view.slice(5):null;
   const usedBy={}; assigns.forEach(a=>{(usedBy[a.leuchte]=usedBy[a.leuchte]||[]).push(a)});
-  let list=rows.filter(r=>(!state.brand.size||state.brand.has(r.brand))&&(!state.cct.size||r.ccts.some(c=>state.cct.has(c)))&&
+  const list=rows.filter(r=>(!state.brand.size||state.brand.has(r.brand))&&(!state.cct.size||r.ccts.some(c=>state.cct.has(c)))&&
     (!state.angle.size||ANGLE_BUCKETS.some(b=>state.angle.has(b[0])&&b[2](r)))&&(!state.color.size||state.color.has(colorKey(r.color)))&&(!state.type.size||state.type.has(r.type))&&(!state.lamp.size||state.lamp.has(lampKey(r.lamp)))&&
-    (!state.dim.size||state.dim.has(r.dim))&&(!minCri||(r.cri!=null&&r.cri>=minCri))&&(!minLm||(r.lm||0)>=minLm)&&(maxW===Infinity||(r.w!=null&&r.w<=maxW))&&(!only||usedBy[r.key])&&(!onlyRoom||(usedBy[r.key]||[]).some(a=>a.raum===onlyRoom)));
+    (!state.dim.size||state.dim.has(r.dim))&&(!minCri||(r.cri!=null&&r.cri>=minCri))&&(!minLm||(r.lm||0)>=minLm)&&(maxW===Infinity||(r.w!=null&&r.w<=maxW))&&(!only||usedBy[r.key])&&(!onlyRoom||(usedBy[r.key]||[]).some(a=>a.raum===onlyRoom))&&exPass(r));
   const k=state.sort;
   list.sort((a,b)=>{const x=a[k],y=b[k];if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return (x>y?1:x<y?-1:0)*state.dir});
-  head.querySelectorAll("button").forEach(b=>b.dataset.dir=b.dataset.k===k?(state.dir>0?"↑":"↓"):"");
-  document.getElementById("count").textContent=list.length+" von "+rows.length+" Leuchten";
-  document.getElementById("rows").innerHTML=list.map(r=>{
-    const u=usedBy[r.key]||[];
-    const usedTxt=u.map(a=>{const rm=roomById(a.raum);return `${a.stueck}× ${esc(rm?rm.name:"?")}${a.gruppe?" / "+esc(a.gruppe):""}`}).join(", ");
-    return `<tr class="${u.length?"picked":""}">
-    <td><button class="btn${u.length?"":" primary"}" type="button" data-pick="${r.key}"${writable()?"":" disabled"}>Merken</button>${u.length?`<span class="used">${usedTxt}</span>`:""}</td>
-    <td style="white-space:normal;min-width:240px"><span class="brand">${r.brand}</span><span class="model">${esc(r.model)}</span>${r.hinweis?`<span class="hint">⚠ ${esc(r.hinweis)}</span>`:""}</td><td>${r.type}<span class="brand">${esc(r.lamp)}</span></td>
-    <td><span class="cct">${r.ccts.map(c=>`<span class="dot" style="background:${CCT_COLOR[c]}"></span>`).join("")}${r.cctLabel}</span></td>
-    <td>${r.angleLabel}</td><td>${r.color}</td>
-    <td class="n">${fmt(r.w)}</td><td class="n">${r.lmText||fmt(r.lm)}</td><td class="n">${fmt(r.lmw)}</td><td class="n">${fmt(r.cri)}</td><td>${r.dim}</td><td class="n">${fmt(r.ugr)}</td>
-    <td class="mono">${r.dims}</td><td class="n">${fmt(r.price)}${r.priceSrc?`<a class="psrc" href="${esc(r.priceUrl||r.ds)}" target="_blank" rel="noopener" title="Preis von ${esc(r.priceSrc)}, Stand ${esc(r.priceDate||"?")}">${esc(r.priceSrc)}${r.priceDate?" · "+esc(r.priceDate.split("-").reverse().join("/")):""}</a>`:""}</td><td class="mono">${r.art}</td>
-    <td><span class="links"><a href="${r.ds}" target="_blank" rel="noopener">${r.dsLabel||"Datenblatt"}</a>${r.img!==r.ds?`<a href="${r.img}" target="_blank" rel="noopener">${r.imgLabel||"Bilder"}</a>`:""}${r.shop?`<a href="${r.shop}" target="_blank" rel="noopener">Shop</a>`:""}</span></td></tr>`}).join("");
+  return {list,usedBy,only,onlyRoom};
+}
+// Welche Eigenschaften unterscheiden sich innerhalb der Treffer?
+function analyse(list){
+  const out={};
+  ATTRS.forEach(at=>{
+    if(at.num){const vals=list.map(at.v).filter(v=>v!=null);const mn=Math.min(...vals),mx=Math.max(...vals);
+      out[at.k]={vary:vals.length>1&&mn!==mx,min:mn,max:mx,missing:list.length-vals.length,n:vals.length};}
+    else{const m=new Map();list.forEach(r=>{const v=at.v(r);m.set(v,(m.get(v)||0)+1)});
+      out[at.k]={vary:m.size>1,values:[...m.entries()].sort((a,b)=>b[1]-a[1]||String(a[0]).localeCompare(String(b[0]),"de",{numeric:true}))};}
+  });
+  return out;
+}
+const numShow=(at,x)=>at.k==="price"?fmt(Math.round(x))+" €":fmt(x)+" "+at.u;
+function renderDiff(list,an){
+  const panel=document.getElementById("diffPanel"), body=document.getElementById("diffBody");
+  const activeEx=Object.entries(state.ex).filter(([k,s])=>s.size);
+  if(list.length<2&&!activeEx.length){panel.hidden=true;return}
+  panel.hidden=false;
+  const varying=ATTRS.filter(at=>an[at.k].vary&&at.k!=="dims");
+  const cats=varying.filter(at=>!at.num).sort((x,y)=>an[x.k].values.length-an[y.k].values.length);
+  const nums=varying.filter(at=>at.num);
+  const common=ATTRS.filter(at=>!at.num&&at.k!=="dims"&&!an[at.k].vary&&an[at.k].values.length&&an[at.k].values[0][0]!=="k. A.").map(at=>`<span class="cm"><i>${at.t}</i> ${esc(an[at.k].values[0][0])}</span>`);
+  document.getElementById("diffSum").textContent=list.length<2?"Gewählte Eigenschaften":`Worin sich die ${list.length} Treffer unterscheiden`;
+  const chip=(at,v,n)=>{const on=state.ex[at.k]&&state.ex[at.k].has(v);return `<button type="button" class="fchip" data-ex="${at.k}" data-v="${esc(v)}" aria-pressed="${on}">${at.k==="cct"&&CCT_COLOR[parseInt(v)]?`<i class="sw" style="background:${CCT_COLOR[parseInt(v)]}"></i>`:""}${esc(v)}<small>${n}</small></button>`};
+  let html="";
+  if(cats.length||nums.length){
+    const maxChips=diffOpenAll?99:6, maxRows=diffOpenAll?99:(innerWidth<760?4:6);
+    const rowsHtml=cats.map(at=>{const vals=an[at.k].values;const shown=vals.slice(0,maxChips);
+      return `<div class="drow"><span class="dl">${at.t}</span><div class="dv">${shown.map(([v,n])=>chip(at,v,n)).join("")}${vals.length>maxChips?`<button type="button" class="morebtn" data-diff-all>+ ${vals.length-maxChips} weitere</button>`:""}</div></div>`})
+      .concat(nums.map(at=>{const s=an[at.k];return `<div class="drow"><span class="dl">${at.t}</span><div class="dv range">${numShow(at,s.min)} bis ${numShow(at,s.max)}${s.missing?` <span class="more">(${s.missing}× ohne Angabe)</span>`:""}</div></div>`}));
+    html+=`<div class="drows">${rowsHtml.slice(0,maxRows).join("")}</div>`;
+    if(rowsHtml.length>maxRows)html+=`<button type="button" class="morebtn" data-diff-all>Alle ${rowsHtml.length} Unterschiede zeigen</button>`;
+    else if(diffOpenAll&&rowsHtml.length>(innerWidth<760?4:6))html+=`<button type="button" class="morebtn" data-diff-less>Weniger zeigen</button>`;
+  } else html+=`<p class="dnone">Die Treffer unterscheiden sich nur noch in Artikelnummer und Maßen.</p>`;
+  if(common.length)html+=`<p class="dcommon"><b>Bei allen gleich:</b> ${common.join("")}</p>`;
+  if(activeEx.length)html+=`<p class="dactive"><b>Hier gewählt:</b> ${activeEx.map(([k,s])=>[...s].map(v=>`<button type="button" class="fchip on" data-ex="${k}" data-v="${esc(v)}" aria-pressed="true">${ATTR[k].t}: ${esc(v)} <span aria-hidden="true">×</span><span class="sr">entfernen</span></button>`).join("")).join("")}</p>`;
+  body.innerHTML=html;
+}
+let diffOpenAll=false;
+document.getElementById("diffBody").addEventListener("click",e=>{
+  if(e.target.closest("[data-diff-all]")){diffOpenAll=true;render();return}
+  if(e.target.closest("[data-diff-less]")){diffOpenAll=false;render();return}
+  const b=e.target.closest("[data-ex]");if(!b)return;const k=b.dataset.ex,v=b.dataset.v;
+  const s=state.ex[k]||(state.ex[k]=new Set());s.has(v)?s.delete(v):s.add(v);render();
+});
+// Lichtkegel: im echten Abstrahlwinkel, in der Lichtfarbe der Leuchte
+function beam(r){
+  const cc=CCT_COLOR[r.ccts[0]]||"#FFE2A8", id="b"+r.key.replace(/\W/g,"");
+  const cone=(a,op)=>{const ang=Math.max(6,Math.min(a,110)),h=150,w=Math.tan(ang/2*Math.PI/180)*h;return `<path d="M-6 24 L6 24 L${w.toFixed(1)} ${h} L${(-w).toFixed(1)} ${h} Z" fill="url(#${id})" opacity="${op}"/>`};
+  const a1=r.aMin??40,a2=r.aMax??a1;
+  return `<svg viewBox="-60 0 120 170" preserveAspectRatio="xMidYMin meet" aria-hidden="true" focusable="false"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${cc}" stop-opacity=".95"/><stop offset="1" stop-color="${cc}" stop-opacity="0"/></linearGradient></defs>
+    <rect x="-9" y="6" width="18" height="18" rx="3" class="lamp"/>${a2!==a1?cone(a2,.45):""}${cone(a1,1)}</svg>`;
+}
+const priceSrc=r=>r.priceSrc?`<a class="psrc" href="${esc(r.priceUrl||r.ds)}" target="_blank" rel="noopener" title="Preis von ${esc(r.priceSrc)}, Stand ${esc(r.priceDate||"?")}">${esc(r.priceSrc)}${r.priceDate?", "+esc(r.priceDate.split("-").reverse().join("/")):""}</a>`:"";
+const linksHtml=r=>`<span class="links"><a href="${r.ds}" target="_blank" rel="noopener">${r.dsLabel||"Datenblatt"}</a>${r.img!==r.ds?`<a href="${r.img}" target="_blank" rel="noopener">${r.imgLabel||"Bilder"}</a>`:""}${r.shop?`<a href="${r.shop}" target="_blank" rel="noopener">Shop</a>`:""}</span>`;
+const usedText=(u)=>u.map(a=>{const rm=roomById(a.raum);return `${a.stueck}× ${esc(rm?rm.name:"?")}${a.gruppe?", "+esc(a.gruppe):""}`}).join("; ");
+
+function cardHtml(r,u,an,dis){
+  const specs=CARD_SPECS.map(k=>{const at=ATTR[k];const val=at.show?at.show(r):esc(at.v(r));const d=an[k].vary;
+    return `<div class="spec${d?" d":""}${at.wide?" wide":""}"><dt>${at.t}</dt><dd>${val}</dd></div>`}).join("");
+  return `<article class="card${u.length?" on":""}">
+    <div class="beam">${beam(r)}<span class="deg">${esc(r.angleLabel)}</span></div>
+    <div class="body">
+      <div class="ctop"><span class="brand">${esc(r.brand)}</span><span class="art">Art.-Nr. ${esc(r.art)}</span></div>
+      <h3 class="name">${esc(r.model)}</h3>
+      ${r.hinweis?`<p class="hint">${esc(r.hinweis)}</p>`:""}
+      <dl class="specs">${specs}</dl>
+      ${u.length?`<p class="used">Gemerkt: ${usedText(u)}</p>`:""}
+      <div class="cfoot"><div class="price">${r.price!=null?`<small>ab</small> ${fmt(r.price)} €`:`<small>Preis unbekannt</small>`}${priceSrc(r)}</div>
+        <button class="pick" type="button" data-pick="${r.key}"${dis}>${u.length?"Nochmal merken":"Merken"}</button></div>
+      ${linksHtml(r)}
+    </div></article>`;
+}
+function tableRowHtml(r,u,dis){
+  return `<tr class="${u.length?"picked":""}">
+    <td><button class="pick sm" type="button" data-pick="${r.key}"${dis}>Merken</button>${u.length?`<span class="used">${usedText(u)}</span>`:""}</td>
+    <td class="namecell"><span class="brand">${esc(r.brand)}</span><span class="model">${esc(r.model)}</span>${r.hinweis?`<span class="hint">${esc(r.hinweis)}</span>`:""}</td><td>${r.type}<span class="brand">${esc(r.lamp)}</span></td>
+    <td><span class="cct">${r.ccts.map(c=>`<span class="dot" style="background:${CCT_COLOR[c]}"></span>`).join("")}${esc(r.cctLabel)}</span></td>
+    <td>${esc(r.angleLabel)}</td><td>${esc(r.color)}</td>
+    <td class="n">${fmt(r.w)}</td><td class="n">${r.lmText||fmt(r.lm)}</td><td class="n">${fmt(r.lmw)}</td><td class="n">${fmt(r.cri)}</td><td>${esc(r.dim)}</td><td class="n">${fmt(r.ugr)}</td>
+    <td>${esc(r.dims)}</td><td class="n">${fmt(r.price)}${priceSrc(r)}</td><td>${esc(r.art)}</td><td>${linksHtml(r)}</td></tr>`;
+}
+const COL_ATTR={type:"type",cctSort:"cct",aMin:"angle",color:"color",w:"w",lm:"lm",lmw:"lmw",cri:"cri",dim:"dim",ugr:"ugr",dims:"dims",price:"price"};
+
+function render(){
+  const {list,usedBy,only,onlyRoom}=filtered();
+  const an=analyse(list), dis=writable()?"":" disabled";
+  const nf=activeFilterCount();
+  document.getElementById("count").textContent=list.length===rows.length?`Alle ${rows.length} Leuchten`:`${list.length} von ${rows.length} Leuchten`;
+  document.getElementById("filterBtn").textContent=nf?`Filter (${nf})`:"Filter";
+  document.getElementById("showRes").textContent=`${list.length} Treffer anzeigen`;
+  const ss=document.getElementById("sortSel"),sv=state.sort+":"+state.dir;
+  if([...ss.options].some(o=>o.value===sv))ss.value=sv;
+  renderDiff(list,an);
+  const cards=document.getElementById("cards"), tb=document.getElementById("tableBox");
+  cards.hidden=state.view!=="cards"; tb.hidden=state.view!=="table";
+  if(state.view==="cards"){
+    cards.innerHTML=list.map(r=>cardHtml(r,usedBy[r.key]||[],an,dis)).join("");
+  }else{
+    head.querySelectorAll("th").forEach((th,i)=>{const c=COLS[i],ak=COL_ATTR[c.k];th.classList.toggle("same",!!ak&&list.length>1&&!an[ak].vary);th.classList.toggle("d",!!ak&&an[ak].vary)});
+    head.querySelectorAll("button").forEach(b=>b.dataset.dir=b.dataset.k===state.sort?(state.dir>0?"↑":"↓"):"");
+    document.getElementById("rows").innerHTML=list.map(r=>tableRowHtml(r,usedBy[r.key]||[],dis)).join("");
+    const same=[...head.querySelectorAll("th")].map(th=>th.classList.contains("same"));
+    document.querySelectorAll("#rows tr").forEach(tr=>[...tr.children].forEach((td,i)=>td.classList.toggle("same",same[i])));
+  }
   if(!list.length){
     const noPicks=(only||onlyRoom)&&!assigns.length;
-    document.getElementById("rows").innerHTML=`<tr class="emptyrow"><td colspan="${COLS.length}"><div class="emptybox"><b>${noPicks?"Noch nichts gemerkt.":"Keine Leuchte passt zu diesen Filtern."}</b>
-      <span>${noPicks?"Klick in der Liste auf „Merken“, um Leuchten einem Raum zuzuordnen.":"Lockere einzelne Filter oder setz alle zurück."}</span>
-      <button class="btn primary" type="button" data-empty-reset>${noPicks?"Alle Leuchten anzeigen":"Filter zurücksetzen"}</button></div></td></tr>`;
+    const box=`<div class="emptybox"><b>${noPicks?"Noch nichts gemerkt.":"Keine Leuchte passt zu diesen Filtern."}</b>
+      <span>${noPicks?"Klick bei einer Leuchte auf „Merken“, um sie einem Raum zuzuordnen.":"Lockere einzelne Filter oder setz alle zurück."}</span>
+      <button class="primary" type="button" data-empty-reset>${noPicks?"Alle Leuchten anzeigen":"Filter zurücksetzen"}</button></div>`;
+    if(state.view==="cards")cards.innerHTML=box; else document.getElementById("rows").innerHTML=`<tr class="emptyrow"><td colspan="${COLS.length}">${box}</td></tr>`;
   }
 }
+function activeFilterCount(){
+  let n=["type","lamp","brand","cct","angle","color","dim"].reduce((s,k)=>s+state[k].size,0)+Object.values(state.ex).reduce((s,x)=>s+x.size,0);
+  if(+document.getElementById("minLm").value)n++; if(+document.getElementById("maxW").value)n++; if(+document.getElementById("minCri").value)n++; if(document.getElementById("onlyPicked").value!=="all")n++;
+  return n;
+}
+document.getElementById("sortSel").addEventListener("change",e=>{const [k,d]=e.target.value.split(":");state.sort=k;state.dir=+d;render()});
+document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{state.view=b.dataset.view;document.querySelectorAll("[data-view]").forEach(x=>x.setAttribute("aria-pressed",x===b));render()});
+document.getElementById("cards").addEventListener("click",e=>{
+  if(e.target.closest("[data-empty-reset]")){document.getElementById("reset").click();return}
+  const b=e.target.closest("[data-pick]");if(b)openPick(b);
+});
+
+// Schubladen am Handy: Filter und Lichtplan
+function openSheet(which){document.body.classList.add("sheet-"+which);const el=document.getElementById(which==="filter"?"filterPanel":"mlPanel");el.setAttribute("tabindex","-1");el.focus({preventScroll:true})}
+function closeSheets(){const was=document.body.classList.contains("sheet-filter")?"filterBtn":document.body.classList.contains("sheet-plan")?"mbar":null;document.body.classList.remove("sheet-filter","sheet-plan");if(was)document.getElementById(was).focus({preventScroll:true})}
+document.getElementById("filterBtn").onclick=()=>openSheet("filter");
+document.getElementById("mbar").onclick=()=>openSheet("plan");
+document.querySelectorAll("[data-close-sheet]").forEach(b=>b.addEventListener("click",()=>{closeSheets();if(b.id==="showRes")document.getElementById("count").focus({preventScroll:false})}));
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&/sheet-/.test(document.body.className)&&!document.querySelector("dialog[open]"))closeSheets()});
 
 let editing=null, confirmDel=null;
+// Gesamtsumme im Lichtplan und in der Leiste unten (Handy)
+function updatePlanSummary(){
+  const items=assigns.filter(a=>byKey[a.leuchte]&&roomById(a.raum));
+  const n=items.reduce((s,a)=>s+a.stueck,0), w=items.reduce((s,a)=>s+(byKey[a.leuchte].w||0)*a.stueck,0);
+  const eur=items.reduce((s,a)=>s+(byKey[a.leuchte].price||0)*a.stueck,0), noPrice=items.filter(a=>byKey[a.leuchte].price==null).length;
+  const tot=document.getElementById("planTotal");
+  tot.hidden=!n;
+  tot.innerHTML=n?`<span>${n} ${n===1?"Leuchte":"Leuchten"}, ${w.toLocaleString("de-DE",{maximumFractionDigits:1})} W${noPrice?`, ${noPrice}× ohne Preis`:""}</span><b>ab ${Math.round(eur).toLocaleString("de-DE")} €</b>`:"";
+  document.getElementById("mbarTitle").textContent=n?`Lichtplan: ${n} ${n===1?"Leuchte":"Leuchten"}`:"Lichtplan";
+  document.getElementById("mbarSub").textContent=n?`${rooms.length} ${rooms.length===1?"Raum":"Räume"}, ab ${Math.round(eur).toLocaleString("de-DE")} €`:rooms.length?`${rooms.length} ${rooms.length===1?"Raum":"Räume"}, noch nichts gemerkt`:"noch leer";
+}
 function renderRooms(){
+  updatePlanSummary();
   const el=document.getElementById("rooms");
   if(el.contains(document.activeElement)&&document.activeElement.tagName==="INPUT")return; // nicht beim Tippen neu zeichnen
-  if(!rooms.length){el.innerHTML=`<div class="empty">Noch keine Räume. Leg oben einen Raum an oder klick in der Liste direkt auf „Merken“, dann kannst du den Raum im selben Schritt anlegen.</div>`;return}
+  if(!rooms.length){el.innerHTML=`<div class="empty">Noch keine Räume. Klick bei einer Leuchte auf „Merken“, dann legst du den Raum im selben Schritt an. Oder leg ihn oben direkt an.</div>`;return}
   const dis=writable()?"":" disabled";
   el.innerHTML=rooms.map(rm=>{
     const items=assigns.filter(a=>a.raum===rm.id&&byKey[a.leuchte]);
@@ -164,7 +311,10 @@ function fillGroups(){
 document.getElementById("pRoom").addEventListener("change",fillGroups);
 document.getElementById("rows").addEventListener("click",e=>{
   if(e.target.closest("[data-empty-reset]")){document.getElementById("reset").click();return}
-  const b=e.target.closest("[data-pick]"); if(!b||!writable())return;
+  const b=e.target.closest("[data-pick]"); if(b)openPick(b);
+});
+function openPick(b){
+  if(!writable())return;
   pickKey=b.dataset.pick; const r=byKey[pickKey];
   document.getElementById("pickSub").textContent=r.brand+" · "+short(r)+" · Art.-Nr. "+r.art;
   const pr=document.getElementById("pRoom");
@@ -174,7 +324,7 @@ document.getElementById("rows").addEventListener("click",e=>{
   fillGroups(); document.getElementById("pNewGroup").value=""; document.getElementById("pQty").value="1"; document.getElementById("pickErr").hidden=true;
   dlg.showModal();
   if(pr.value===NEW_ROOM)document.getElementById("pNewRoom").focus();
-});
+}
 document.getElementById("pickCancel").onclick=()=>dlg.close();
 document.getElementById("pickForm").addEventListener("submit",async e=>{
   e.preventDefault(); let roomId=document.getElementById("pRoom").value, rm=roomById(roomId);
@@ -207,7 +357,7 @@ let unsub=[], notice="";
 const KNOWN=["too_large","conflict","forbidden","not_found","network","not_configured","offline"];
 function readyText(){
   if(db.mode==="shared")return "Gemeinsame Liste"+(db.hasPassword?" (mit Passwort)":"")+": Alle mit dem Link sehen Änderungen sofort. Die Daten werden im Browser verschlüsselt gespeichert.";
-  return db.persistent?"Auf „Merken“ klicken, um eine Leuchte einem Raum und einer Verwendung zuzuordnen. Die Merkliste liegt in einem Sitzungs-Cookie in diesem Browser und wird beim Schließen des Browsers gelöscht."
+  return db.persistent?"Gespeichert nur in diesem Browser, bis er geschlossen wird. Zum Aufheben oder Teilen: „Gemeinsam bearbeiten“."
     :"Cookies sind blockiert: Die Merkliste funktioniert, geht aber beim Neuladen der Seite verloren.";
 }
 function attach(store){

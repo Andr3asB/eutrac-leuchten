@@ -4,65 +4,96 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Leuchten für EUTRAC</title>
-<link rel="stylesheet" href="fonts.css?v=20261031f">
-<link rel="stylesheet" href="style.css?v=20261031f">
+<link rel="stylesheet" href="fonts.css?v=20261101a">
+<link rel="stylesheet" href="style.css?v=20261101a">
 </head>
 <body>
 <a class="skiplink" href="#leuchten">Zur Leuchtenliste springen</a>
-<div class="wrap">
-  <header class="pagehead">
-    <div class="titlerow"><h1>Leuchten für EUTRAC</h1><button type="button" class="btn tourbtn" id="tourBtn" aria-label="Einführungstour starten">? Tour</button></div>
-    <p class="lead">Leuchten für die EUTRAC‑3‑Phasen‑Schienen: das komplette SLV‑Sortiment ohne DALI (Spots, Pendel, Linearleuchten) plus phasendimmbare Alternativen von Deko‑Light, ISOLED, Paulmann und Molto Luce. Stand: 31.10.2026.</p>
-  </header>
-<main id="main">
-
-  <section class="panel" id="mlPanel" aria-labelledby="mlh">
-    <div class="panelhead">
-      <h2 id="mlh">Merkliste nach Raum</h2>
-      <div class="tools share" id="shareBar"></div>
-      <div class="tools" id="roomTools"><input type="text" id="newRoom" placeholder="Neuer Raum" aria-label="Name für neuen Raum"><button class="btn" id="addRoom" type="button">Raum hinzufügen</button></div>
+<header class="top">
+  <div class="topin">
+    <div>
+      <h1>Leuchten für EUTRAC</h1>
+      <p class="lead">Phasendimmbare Strahler und Pendel für EUTRAC‑3‑Phasen‑Schienen: SLV ohne DALI, dazu Deko‑Light, ISOLED, Paulmann und Molto Luce. Filtern, die Unterschiede vergleichen, pro Raum merken und mit Familie oder Elektriker teilen. Stand: 31.10.2026.</p>
     </div>
+    <button type="button" class="ghost tourbtn" id="tourBtn" aria-label="Einführungstour starten">? Tour</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="filters" id="filterPanel" aria-label="Filter">
+    <div class="sheethead"><h2>Filter</h2><button type="button" class="ghost" data-close-sheet>Fertig</button></div>
+    <div class="fgroup"><h3>Lichtfarbe</h3><div class="chips" id="fCct"></div></div>
+    <div class="fgroup"><h3>Abstrahlwinkel</h3><div class="chips" id="fAngle"></div></div>
+    <div class="fgroup"><h3>Dimmung</h3><div class="chips" id="fDim"></div></div>
+    <div class="fgroup"><h3>Hersteller</h3><div class="chips" id="fBrand"></div></div>
+    <div class="fgroup"><h3>Typ</h3><div class="chips" id="fType"></div></div>
+    <div class="fgroup"><h3>Leuchtmittel</h3><div class="chips" id="fLamp"></div></div>
+    <div class="fgroup"><h3>Gehäuse</h3><div class="chips" id="fColor"></div></div>
+    <div class="fgroup nums">
+      <div class="f"><label for="minLm">Lumen mindestens</label><input type="number" id="minLm" min="0" step="100" placeholder="z. B. 1500"></div>
+      <div class="f"><label for="maxW">Watt höchstens</label><input type="number" id="maxW" min="0" step="1" placeholder="z. B. 20"></div>
+      <div class="f"><label for="minCri">CRI mindestens</label><select id="minCri"><option value="0">alle</option><option value="90">90</option><option value="92">92</option></select></div>
+      <div class="f" id="viewFilter"><label for="onlyPicked">Anzeigen</label><select id="onlyPicked"><option value="all">alle Leuchten</option><option value="picked">nur gemerkte</option></select></div>
+    </div>
+    <button class="reset" id="reset" type="button">Alle Filter zurücksetzen</button>
+    <button type="button" class="primary showres" data-close-sheet id="showRes">Treffer anzeigen</button>
+  </aside>
+
+  <main id="main">
+    <div class="toolbar" id="viewTools">
+      <button type="button" class="ghost filterbtn" id="filterBtn" aria-controls="filterPanel">Filter</button>
+      <h2 class="count" id="count" tabindex="-1" aria-live="polite"></h2>
+      <div class="tools">
+        <label class="sr" for="sortSel">Sortieren</label>
+        <select id="sortSel">
+          <option value="lm:-1">Lumen, hoch zuerst</option><option value="lm:1">Lumen, niedrig zuerst</option>
+          <option value="price:1">Preis, günstig zuerst</option><option value="lmw:-1">Effizienz, hoch zuerst</option>
+          <option value="w:1">Watt, niedrig zuerst</option><option value="aMin:1">Winkel, eng zuerst</option><option value="model:1">Name</option>
+        </select>
+        <div class="seg" role="group" aria-label="Ansicht"><button type="button" data-view="cards" aria-pressed="true">Karten</button><button type="button" data-view="table" aria-pressed="false">Tabelle</button></div>
+      </div>
+    </div>
+
+    <details class="diff" id="diffPanel" open>
+      <summary id="diffSum">Worin sich die Treffer unterscheiden</summary>
+      <div id="diffBody"></div>
+    </details>
+
+    <div id="leuchten" tabindex="-1">
+      <div class="cards" id="cards"></div>
+      <div class="tablebox" id="tableBox" hidden>
+        <table><thead><tr id="head"></tr></thead><tbody id="rows"></tbody></table>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div><b>Merken:</b> „Merken“ in der ersten Spalte öffnet die Auswahl von Raum, Verwendung und Stückzahl. Eine Leuchte kann in beliebig vielen Räumen und Verwendungen stehen. Räume und Verwendungen lassen sich in der Merkliste umbenennen, ergänzen und löschen.</div>
+      <div><b>Preis:</b> „ab“‑Preis aus Onlineshops, nicht tagesaktuell. Leuchten ohne bekannten Preis zählen im Raum als „ohne Preis“. Wo eine Preisquelle mit Monat unter dem Preis steht, wurde der Preis im Oktober 2026 direkt beim genannten Shop abgelesen.</div>
+      <div><b>Dimmung:</b> „Abschnitt“ = laut Datenblatt nur Phasenabschnitt (Trailing Edge), „An‑/Abschnitt“ = beides. Ein Test am eigenen KNX‑Aktor ersetzt das nicht.</div>
+      <div><b>NUMINOS:</b> alle 78 Artikelnummern einzeln gegen das SLV‑Datenblatt geprüft. Das Datenblatt‑PDF enthält das Produktbild; „Bilder“ öffnet eine Bildersuche ohne Werbung (DuckDuckGo).</div>
+      <div><b>Deko‑Light Lucea:</b> 3000/4000 K am Strahler umschaltbar. <b>ISOLED:</b> Zoom‑Strahler, dimmbar etwa 20–100 %.</div>
+      <div><b>SLV‑Sortiment:</b> 177 weitere SLV‑Artikel aus dem Sortiment von leuchtmittel-verkauf.de (alle SLV‑3‑Phasen‑Leuchten dort, ohne DALI‑Varianten, weil SLV‑DALI‑Adapter laut SLV nicht auf EUTRAC passen). Technische Werte, Bild und Preis stammen von dieser Shopseite, die Datenblatt‑Links von SLV. Dimmung „k. A.“ heißt: Der Shop nennt keine Dimmart. Vor dem Kauf im Datenblatt prüfen. Bei mehreren Lumenwerten (z. B. SIGHT, TRACKSPOT P90) hängt der Wert von Länge oder Leistungsstufe ab.</div>
+      <div><b>Paulmann ProRail3 Zeuz / Molto Luce MAG TRACK:</b> ergänzt im Oktober 2026, Werte von den Herstellerseiten (paulmann.com, moltoluce.com). Paulmann: alle 18 Varianten, Dimmung „R+C“ (Phasenabschnitt), ProRail3 laut Paulmann-Planungshilfe EUTRAC‑kompatibel. Molto Luce: laut Datenblatt Phasenabschnitt, Adapter nach Global-Standard.</div>
+      <div><b>Geprüft, aber ohne Phasendimmung:</b> BEGA (3‑Phasen‑Strahler nur DALI), LEDVANCE Tracklight Spot Zoom Dim (Schieberegler am Strahler), XAL (DALI oder Potentiometer).</div>
+      <div><b>Nicht aufgenommen:</b> SLV TRACKSPOT C (Dimmbarkeit nicht angegeben).</div>
+    </div>
+  </main>
+
+  <aside class="plan" id="mlPanel" aria-labelledby="mlh">
+    <div class="planhead"><h2 id="mlh">Lichtplan</h2><button type="button" class="ghost closeplan" data-close-sheet>Schließen</button></div>
+    <p class="plansub">Deine Merkliste nach Raum</p>
+    <div class="tools share" id="shareBar"></div>
+    <div class="tools roomtools" id="roomTools"><input type="text" id="newRoom" placeholder="Neuer Raum, z. B. Küche" aria-label="Name für neuen Raum"><button class="ghost" id="addRoom" type="button">Raum anlegen</button></div>
     <div class="status" id="pickStatus">Merkliste wird geladen …</div>
     <div class="rooms" id="rooms"></div>
-  </section>
-
-  <section class="panel filters" aria-label="Filter">
-    <div class="f"><span class="lbl">Hersteller</span><div class="chips" id="fBrand"></div></div>
-    <div class="f"><span class="lbl">Typ</span><div class="chips" id="fType"></div></div>
-    <div class="f"><span class="lbl">Leuchtmittel</span><div class="chips" id="fLamp"></div></div>
-    <div class="f"><span class="lbl">Farbtemperatur</span><div class="chips" id="fCct"></div></div>
-    <div class="f"><span class="lbl">Abstrahlwinkel</span><div class="chips" id="fAngle"></div></div>
-    <div class="f"><span class="lbl">Gehäuse</span><div class="chips" id="fColor"></div></div>
-    <div class="f"><span class="lbl">Dimmung</span><div class="chips" id="fDim"></div></div>
-    <div class="f"><label for="minCri">CRI min.</label><select id="minCri"><option value="0">alle</option><option value="90">≥ 90</option><option value="92">≥ 92</option></select></div>
-    <div class="f"><label for="minLm">Lumen min.</label><input type="number" id="minLm" min="0" step="100" placeholder="z. B. 1500"></div>
-    <div class="f"><label for="maxW">Watt max.</label><input type="number" id="maxW" min="0" step="1" placeholder="z. B. 20"></div>
-    <div class="f" id="viewFilter"><label for="onlyPicked">Anzeige</label><select id="onlyPicked"><option value="all">alle Leuchten</option><option value="picked">nur gemerkte</option></select></div>
-    <div class="f"><button class="reset" id="reset" type="button">Filter zurücksetzen</button></div>
-  </section>
-
-  <div class="count" id="count" tabindex="-1"></div>
-  <div class="tablebox" id="leuchten" tabindex="-1">
-    <table>
-      <thead><tr id="head"></tr></thead>
-      <tbody id="rows"></tbody>
-    </table>
-  </div>
-
-  <div class="notes">
-    <div><b>Merken:</b> „Merken“ in der ersten Spalte öffnet die Auswahl von Raum, Verwendung und Stückzahl. Eine Leuchte kann in beliebig vielen Räumen und Verwendungen stehen. Räume und Verwendungen lassen sich in der Merkliste umbenennen, ergänzen und löschen.</div>
-    <div><b>Preis:</b> „ab“‑Preis aus Onlineshops, nicht tagesaktuell. Leuchten ohne bekannten Preis zählen im Raum als „ohne Preis“. Wo eine Preisquelle mit Monat unter dem Preis steht, wurde der Preis im Oktober 2026 direkt beim genannten Shop abgelesen.</div>
-    <div><b>Dimmung:</b> „Abschnitt“ = laut Datenblatt nur Phasenabschnitt (Trailing Edge), „An‑/Abschnitt“ = beides. Ein Test am eigenen KNX‑Aktor ersetzt das nicht.</div>
-    <div><b>NUMINOS:</b> alle 78 Artikelnummern einzeln gegen das SLV‑Datenblatt geprüft. Das Datenblatt‑PDF enthält das Produktbild; „Bilder“ öffnet eine Bildersuche ohne Werbung (DuckDuckGo).</div>
-    <div><b>Deko‑Light Lucea:</b> 3000/4000 K am Strahler umschaltbar. <b>ISOLED:</b> Zoom‑Strahler, dimmbar etwa 20–100 %.</div>
-    <div><b>SLV‑Sortiment:</b> 177 weitere SLV‑Artikel aus dem Sortiment von leuchtmittel-verkauf.de (alle SLV‑3‑Phasen‑Leuchten dort, ohne DALI‑Varianten, weil SLV‑DALI‑Adapter laut SLV nicht auf EUTRAC passen). Technische Werte, Bild und Preis stammen von dieser Shopseite, die Datenblatt‑Links von SLV. Dimmung „k. A.“ heißt: Der Shop nennt keine Dimmart. Vor dem Kauf im Datenblatt prüfen. Bei mehreren Lumenwerten (z. B. SIGHT, TRACKSPOT P90) hängt der Wert von Länge oder Leistungsstufe ab.</div>
-    <div><b>Paulmann ProRail3 Zeuz / Molto Luce MAG TRACK:</b> ergänzt im Oktober 2026, Werte von den Herstellerseiten (paulmann.com, moltoluce.com). Paulmann: alle 18 Varianten, Dimmung „R+C“ (Phasenabschnitt), ProRail3 laut Paulmann-Planungshilfe EUTRAC‑kompatibel. Molto Luce: laut Datenblatt Phasenabschnitt, Adapter nach Global-Standard.</div>
-    <div><b>Geprüft, aber ohne Phasendimmung:</b> BEGA (3‑Phasen‑Strahler nur DALI), LEDVANCE Tracklight Spot Zoom Dim (Schieberegler am Strahler), XAL (DALI oder Potentiometer).</div>
-    <div><b>Nicht aufgenommen:</b> SLV TRACKSPOT C (Dimmbarkeit nicht angegeben).</div>
-  </div>
-</main>
-  <footer class="sitefoot"><button type="button" class="linkbtn" id="tourLink">Tour</button><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
+    <div class="plantotal" id="planTotal" hidden></div>
+  </aside>
 </div>
+
+<button type="button" class="mbar" id="mbar" aria-controls="mlPanel"><span><b id="mbarTitle">Lichtplan</b><small id="mbarSub">noch leer</small></span><span class="mbtn">Ansehen</span></button>
+<div class="scrim" id="scrim" data-close-sheet></div>
+
+<footer class="sitefoot"><button type="button" class="linkbtn" id="tourLink">Tour</button><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
 
 <dialog id="pickDlg">
   <form method="dialog" id="pickForm">
@@ -113,10 +144,10 @@
   </form>
 </dialog>
 
-<script src="config.js?v=20261031f"></script>
-<script src="vendor/supabase-2.117.3.js?v=20261031f"></script>
-<script src="merkliste-store.js?v=20261031f"></script>
-<script src="tour.js?v=20261031f"></script>
-<script src="app.js?v=20261031f"></script>
+<script src="config.js?v=20261101a"></script>
+<script src="vendor/supabase-2.117.3.js?v=20261101a"></script>
+<script src="merkliste-store.js?v=20261101a"></script>
+<script src="tour.js?v=20261101a"></script>
+<script src="app.js?v=20261101a"></script>
 </body>
 </html>

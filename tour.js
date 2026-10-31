@@ -2,19 +2,24 @@
 // und lässt sich über „Tour“ in der Fußzeile jederzeit erneut starten. Keine externen Bibliotheken.
 (function(){
   const STEPS=[
-    {title:"Willkommen!",text:"Hier findest du Leuchten für EUTRAC-3-Phasen-Schienen, mit Filtern, Datenblättern und einer Merkliste nach Raum. Die Tour dauert etwa eine Minute."},
-    {sel:"#mlPanel",title:"Merkliste nach Raum",text:"Hier sammelst du Leuchten pro Raum und Verwendung, etwa „Decke“ oder „Leseecke“, mit Stückzahl. Unten in jedem Raum stehen Preis, Watt und Lumen zusammengerechnet."},
-    {sel:"#roomTools",title:"Raum anlegen",text:"Gib einen Namen ein, zum Beispiel „Wohnzimmer“, und klick auf „Raum hinzufügen“. Danach kannst du Leuchten merken."},
-    {sel:"#shareBar button",title:"Gemeinsam bearbeiten",text:"Damit wird aus deiner Merkliste eine gemeinsame Liste, die du per Link mit Familie oder Elektriker teilst. Auf Wunsch schützt ein Passwort die Liste, Änderungen sehen alle sofort."},
-    {sel:".filters",title:"Filter",text:"Grenze die Auswahl ein, nach Hersteller, Farbtemperatur, Abstrahlwinkel, Gehäusefarbe, Dimmung und mehr. Mehrere Filter lassen sich kombinieren."},
-    {sel:"#viewFilter",title:"Anzeige",text:"Zeig nur gemerkte Leuchten oder nur die Leuchten eines Raums, praktisch zum Prüfen und Bestellen."},
-    {sel:"#head",title:"Sortieren",text:"Ein Klick auf eine Spaltenüberschrift sortiert die Tabelle, ein zweiter Klick dreht die Reihenfolge um. Auf dem Handy lässt sich die Tabelle seitlich wischen."},
-    {sel:"#rows [data-pick]",title:"Merken",text:"Damit ordnest du eine Leuchte einem Raum, einer Verwendung und einer Stückzahl zu. Eine Leuchte kann in mehreren Räumen stehen."},
-    {sel:"#rows .links",title:"Details",text:"Hier findest du Datenblatt, Bilder und Shop. Steht unter dem Preis ein Shop mit Monat, wurde der Preis dort abgelesen."},
-    {sel:".notes",title:"Hinweise",text:"Hier wird erklärt, was „Abschnitt“ und „An-/Abschnitt“ bei der Dimmung bedeuten und woher die Daten stammen. Teste vor dem Kauf eine Leuchte am eigenen Dimmer oder KNX-Aktor."},
-    {sel:"#tourBtn",title:"Fertig!",text:"Über „Tour“ oben rechts kannst du die Einführung jederzeit erneut starten, ebenso über den Link unten auf der Seite. Viel Erfolg bei der Planung!"}
+    {title:"Willkommen!",text:"Hier findest du phasendimmbare Leuchten für EUTRAC-3-Phasen-Schienen. Du kannst filtern, die Unterschiede vergleichen, pro Raum merken und die Liste teilen. Die Tour dauert etwa eine Minute."},
+    {sel:".filters|#filterBtn",title:"Filter",text:"Grenze die Auswahl ein, nach Lichtfarbe, Abstrahlwinkel, Dimmung, Hersteller, Gehäuse, Lumen und Watt."},
+    {sel:"#diffPanel",title:"Worin sich die Treffer unterscheiden",text:"Hier steht, worin sich die aktuellen Treffer noch unterscheiden, mit der Anzahl je Wert. Ein Klick auf einen Wert filtert danach. Was bei allen gleich ist, steht darunter."},
+    {sel:"#cards .specs|#tableBox",title:"Technische Daten",text:"Jede Leuchte zeigt alle technischen Daten. Werte, in denen sich die Treffer unterscheiden, sind fett und mit einem Balken markiert. So siehst du sofort, was zwei Leuchten trennt."},
+    {sel:"#cards .beam",title:"Lichtkegel",text:"Der Kegel ist im echten Abstrahlwinkel gezeichnet und in der Lichtfarbe eingefärbt: 2700 K bernstein, 4000 K fast weiß. Bei Zoom-Strahlern zeigt der hellere Bereich den größten Winkel."},
+    {sel:"#viewTools .tools",title:"Sortieren und Tabelle",text:"Sortier nach Lumen, Preis oder Effizienz. Mit „Tabelle“ vergleichst du alle Werte Spalte für Spalte. Spalten, die bei allen Treffern gleich sind, treten zurück."},
+    {sel:"#cards [data-pick]|#rows [data-pick]",title:"Merken",text:"Damit ordnest du eine Leuchte einem Raum, einer Verwendung und einer Stückzahl zu. Gibt es den Raum noch nicht, legst du ihn im selben Schritt an."},
+    {sel:"#mlPanel|#mbar",title:"Lichtplan",text:"Hier sammeln sich deine gemerkten Leuchten nach Raum und Verwendung, mit Stückzahl und Gesamtsumme aus Preis und Watt."},
+    {sel:"#shareBar button",title:"Gemeinsam bearbeiten",text:"Damit wird aus deinem Lichtplan eine gemeinsame Liste, die du per Link mit Familie oder Elektriker teilst. Auf Wunsch schützt ein Passwort die Liste."},
+    {sel:".notes",title:"Hinweise",text:"Hier steht, was „Abschnitt“ und „An-/Abschnitt“ bei der Dimmung bedeuten und woher die Daten stammen. Teste vor dem Kauf eine Leuchte am eigenen Dimmer oder KNX-Aktor."},
+    {sel:"#tourBtn",title:"Fertig!",text:"Über „Tour“ oben rechts startest du die Einführung jederzeit erneut. Viel Erfolg bei der Planung!"}
   ];
-  const visible=el=>{if(!el)return false;const r=el.getBoundingClientRect();return r.width>0&&r.height>0&&getComputedStyle(el).visibility!=="hidden"};
+  const visible=el=>{if(!el)return false;const r=el.getBoundingClientRect();if(!(r.width>0&&r.height>0)||getComputedStyle(el).visibility==="hidden")return false;
+    // Elemente in ausgeblendeten Schubladen (fest positioniert, aus dem Bild geschoben) zählen nicht
+    const box=el.closest(".plan,.filters");if(box&&getComputedStyle(box).position==="fixed"){const b=box.getBoundingClientRect();if(b.top>=innerHeight||b.left>=innerWidth||b.bottom<=0||b.right<=0)return false}
+    return true};
+  // sel darf mehrere Alternativen enthalten („a|b“); genommen wird die erste sichtbare
+  const find=sel=>{if(!sel)return null;for(const s of sel.split("|")){const el=document.querySelector(s);if(visible(el))return el}return null};
   let i=0, steps=[], root, hole, card, onDone=null, prevFocus=null;
 
   function build(){
@@ -35,7 +40,7 @@
     else if(e.key==="Tab"){const f=[...card.querySelectorAll("button")].filter(b=>!b.hidden);const k=f.indexOf(document.activeElement);
       if(e.shiftKey&&k<=0){e.preventDefault();f[f.length-1].focus()}else if(!e.shiftKey&&k===f.length-1){e.preventDefault();f[0].focus()}}}
   function place(){
-    const s=steps[i], el=s.sel&&document.querySelector(s.sel);
+    const s=steps[i], el=s.el;
     const vw=innerWidth, vh=innerHeight, pad=6, mobile=vw<600;
     card.classList.toggle("sheet",mobile);
     if(!el){hole.style.cssText="left:50%;top:50%;width:0;height:0";card.classList.add("center");card.style.left=card.style.top="";return}
@@ -51,7 +56,7 @@
   }
   function go(n){
     if(n<0)return; if(n>=steps.length){end();return}
-    i=n;const s=steps[i],el=s.sel&&document.querySelector(s.sel);
+    i=n;const s=steps[i],el=s.el;
     root.querySelector("#tourTitle").textContent=s.title;root.querySelector("#tourText").textContent=s.text;
     root.querySelector("#tourCount").textContent=`Schritt ${i+1} von ${steps.length}`;
     root.querySelector('[data-t="prev"]').hidden=i===0;
@@ -74,7 +79,7 @@
   }
   function start(done){
     if(root)return; onDone=done||null; prevFocus=document.activeElement;
-    steps=STEPS.filter(s=>!s.sel||visible(document.querySelector(s.sel)));
+    steps=STEPS.map(s=>({...s,el:find(s.sel)})).filter(s=>!s.sel||s.el);
     build();document.documentElement.classList.add("touring");
     addEventListener("resize",place);addEventListener("scroll",place,true);document.addEventListener("keydown",onKey,true);
     go(0);
