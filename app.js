@@ -1,7 +1,7 @@
 // Leuchtendaten kommen aus leuchten.json, die Merkliste aus einem Sitzungs-Cookie (merkliste-store.js).
 (async()=>{
 let rows;
-try{ rows=await (await fetch("leuchten.json?v=20261031c",{cache:"no-cache"})).json() }
+try{ rows=await (await fetch("leuchten.json?v=20261031d",{cache:"no-cache"})).json() }
 catch(e){ document.getElementById("count").textContent="Leuchtendaten (leuchten.json) konnten nicht geladen werden."; return }
 rows.forEach(r=>{r.type=r.type||"Spot";r.lamp=r.lamp||"LED integriert";r.key=r.brand.replace(/\W/g,"")+"_"+r.art;r.lmw=(r.lm&&r.w&&!r.lmText)?Math.round(r.lm/r.w):null;r.cctSort=r.ccts.length?Math.min(...r.ccts):null});
 
@@ -189,7 +189,7 @@ function attach(store){
   unsub.forEach(f=>f());unsub=[];if(db&&db.close&&db!==store)db.close();
   db=store;dbReady=false;rooms=[];assigns=[];editing=null;confirmDel=null;
   let gotRooms=false,gotAssigns=false;
-  const done=()=>{if(gotRooms&&gotAssigns&&!dbReady){dbReady=true;status((notice?notice+" ":"")+readyText());notice="";render();renderRooms()}};
+  const done=()=>{if(gotRooms&&gotAssigns&&!dbReady){dbReady=true;status((notice?notice+" ":"")+readyText());notice="";render();renderRooms();maybeTour()}};
   unsub.push(db.collection("raeume").onSnapshot(s=>{rooms=s.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.pos||0)-(b.pos||0));gotRooms=true;done();render();renderRooms()}));
   unsub.push(db.collection("zuordnung").onSnapshot(s=>{assigns=s.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()})).filter(a=>a.leuchte&&a.raum).map(a=>({...a,stueck:+a.stueck||1}));gotAssigns=true;done();render();renderRooms()}));
   if(db.onRemoteChange)db.onRemoteChange(e=>{if(e&&e.code==="not_found"){goLocal("Die gemeinsame Liste wurde gelöscht.")}else if(dbReady)status("Aktualisiert: "+new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+" · "+readyText())});
@@ -261,6 +261,17 @@ async function start(){
   status("Gemeinsame Liste wird geöffnet …");
   try{attach(await S.openShared(link,askPassword))}
   catch(err){goLocal((err.code==="cancelled"?"Ohne Passwort kann die gemeinsame Liste nicht geöffnet werden.":KNOWN.includes(err.code)||err.code==="bad_key"?err.message:"Die gemeinsame Liste konnte nicht geöffnet werden.")+" Angezeigt wird die lokale Merkliste.")}
+}
+// Einführungstour: beim ersten Besuch (noch keine Merkliste und Tour nicht gesehen) automatisch, sonst über „Tour“ in der Fußzeile
+let tourChecked=false;
+const TOUR_PATH=location.pathname.replace(/[^/]*$/,"")||"/";
+const tourSeen=()=>/(?:^|;\s*)merkliste_(?:n|tour)=/.test(document.cookie);
+const markTourSeen=()=>{try{document.cookie="merkliste_tour=1; path="+TOUR_PATH+"; SameSite=Lax"+(location.protocol==="https:"?"; Secure":"")}catch(e){}};
+document.getElementById("tourLink").onclick=()=>window.Tour&&window.Tour.start(markTourSeen);
+function maybeTour(){
+  if(!window.Tour||tourSeen()||tourChecked)return; tourChecked=true;
+  const tryStart=()=>{if(document.querySelector("dialog[open]")){setTimeout(tryStart,800);return}window.Tour.start(markTourSeen)};
+  setTimeout(tryStart,600);
 }
 window.addEventListener("hashchange",()=>{const l=S.parseLink(location.hash);if(l&&(!db||db.id!==l.id))start()});
 start();

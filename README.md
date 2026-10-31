@@ -10,6 +10,7 @@ Filterbare Übersicht über Leuchten für EUTRAC-3-Phasen-Stromschienen (SLV, De
 | `style.css` | Gestaltung |
 | `leuchten.json` | **Leuchtendaten** – eine Leuchte pro Zeile; hier ergänzen/ändern |
 | `app.js` | Filter, Tabelle, Merkliste |
+| `tour.js` | Einführungstour (beim ersten Besuch automatisch, sonst über „Tour“ in der Fußzeile) |
 | `merkliste-store.js` | Speichert die Merkliste: lokal im Sitzungs-Cookie oder gemeinsam (verschlüsselt) in Supabase |
 | `config.js` | Zugangsdaten für Supabase (leer = nur lokale Merkliste) |
 | `supabase/schema.sql` | Datenbank-Einrichtung für gemeinsame Listen |

@@ -102,3 +102,24 @@ dialog input[type=password]{width:100%;box-sizing:border-box}
 .legal p,.legal li{line-height:1.55}
 .legal a{color:var(--accent)}
 .legal address{font-style:normal;line-height:1.6}
+
+/* Einführungstour */
+.linkbtn{font:inherit;background:none;border:none;padding:0;color:var(--muted);text-decoration:underline;cursor:pointer}
+.tour{position:fixed;inset:0;z-index:1000}
+.tour-catch{position:absolute;inset:0}
+.tour-hole{position:fixed;border-radius:8px;box-shadow:0 0 0 9999px rgba(15,15,12,.58),0 0 0 2px var(--accent);transition:all .22s ease;pointer-events:none}
+.tour-card{position:fixed;width:min(360px,calc(100vw - 24px));background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:12px;padding:14px 16px 12px;box-shadow:0 12px 40px rgba(0,0,0,.28);display:flex;flex-direction:column;gap:8px;transition:top .22s ease,left .22s ease}
+.tour-card.center{left:50%!important;top:50%!important;transform:translate(-50%,-50%)}
+.tour-card.sheet{left:12px!important;right:12px;bottom:max(12px,env(safe-area-inset-bottom));top:auto!important;width:auto;transform:none}
+.tour-card h3{margin:0;font-family:var(--display);font-size:16px}
+.tour-card p{margin:0;font-size:13.5px;line-height:1.5;color:var(--fg)}
+.tour-top{display:flex;justify-content:space-between;align-items:center}
+.tour-count{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tour-x{border:none;background:none;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:0 2px}
+.tour-nav{display:flex;align-items:center;gap:6px;margin-top:4px}
+.tour-sp{flex:1}
+.tour-nav .btn{padding:5px 12px;font-size:13px}
+.tour-dots{display:flex;gap:4px;justify-content:center}
+.tour-dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
+.tour-dots i.on{background:var(--accent)}
+@media (prefers-reduced-motion:reduce){.tour-hole,.tour-card{transition:none}}
