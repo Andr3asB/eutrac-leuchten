@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Datenschutz – Leuchten für EUTRAC</title>
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="fonts.css?v=20261031f">
-<link rel="stylesheet" href="style.css?v=20261031f">
+<link rel="stylesheet" href="fonts.css?v=20261101b">
+<link rel="stylesheet" href="style.css?v=20261101b">
 </head>
 <body>
 <div class="wrap legal">
@@ -14,7 +14,7 @@
   <header>
     <p><a href="./">← Zurück zur Leuchtenliste</a></p>
     <h1>Datenschutzerklärung</h1>
-    <p class="lead">Stand: Oktober 2026</p>
+    <p class="lead">Stand: November 2026</p>
   </header>
 
   <section>
@@ -43,10 +43,21 @@
   </section>
 
   <section>
-    <h2>4. Merkliste im Browser (Cookies und Sitzungsspeicher)</h2>
-    <p>Räume, Verwendungen und gemerkte Leuchten werden in <strong>Sitzungs-Cookies</strong> (Namen beginnen mit <code>merkliste_</code>) in Ihrem Browser gespeichert. Sie haben kein Ablaufdatum und werden gelöscht, wenn Sie den Browser beenden. Die Inhalte werden nicht ausgewertet. Ein weiteres Sitzungs-Cookie (<code>merkliste_tour</code>) merkt sich, dass die Einführungstour bereits gezeigt wurde, damit sie nicht bei jedem Seitenaufruf erneut startet.</p>
-    <p>Wenn Sie eine gemeinsame Liste geöffnet haben, legt die Seite zusätzlich den daraus abgeleiteten Schlüssel im <strong>Sitzungsspeicher</strong> (sessionStorage) des jeweiligen Browser-Tabs ab. Dort wird er beim Schließen des Tabs gelöscht.</p>
-    <p>Diese Speicherung ist für die von Ihnen gewünschte Merklisten-Funktion unbedingt erforderlich. Sie erfolgt daher ohne Einwilligung auf Grundlage von § 25 Abs. 2 Nr. 2 TDDDG, die anschließende Verarbeitung auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO.</p>
+    <h2>4. Speicherung im Browser (Cookies und Sitzungsspeicher)</h2>
+    <p>Die Seite speichert nur, was für die von Ihnen genutzten Funktionen nötig ist. Es gibt keine Analyse-, Marketing- oder Drittanbieter-Cookies. Alle Einträge sind <strong>Sitzungsdaten</strong>: Sie haben kein Ablaufdatum und werden gelöscht, wenn Sie den Browser bzw. den Tab schließen.</p>
+    <table class="store">
+      <thead><tr><th>Name</th><th>Art</th><th>Zweck</th><th>Dauer</th></tr></thead>
+      <tbody>
+        <tr><td data-label="Name"><code>merkliste_0</code>, <code>merkliste_1</code>, <code>merkliste_n</code></td><td data-label="Art">Cookie</td><td data-label="Zweck">Ihre lokale Merkliste: Räume, Verwendungen, gemerkte Leuchten und Stückzahlen (kompakt kodiert)</td><td data-label="Dauer">bis zum Schließen des Browsers</td></tr>
+        <tr><td data-label="Name"><code>merkliste_tour</code></td><td data-label="Art">Cookie</td><td data-label="Zweck">merkt sich, dass die Einführungstour bereits gezeigt wurde</td><td data-label="Dauer">bis zum Schließen des Browsers</td></tr>
+        <tr><td data-label="Name"><code>merkliste_test</code></td><td data-label="Art">Cookie</td><td data-label="Zweck">prüft einmalig, ob Cookies erlaubt sind; wird sofort wieder gelöscht</td><td data-label="Dauer">Sekundenbruchteil</td></tr>
+        <tr><td data-label="Name"><code>ml_key_…</code></td><td data-label="Art">Sitzungsspeicher</td><td data-label="Zweck">aus Link und Passwort abgeleiteter Schlüssel einer geöffneten gemeinsamen Liste, damit das Passwort beim Neuladen nicht erneut nötig ist</td><td data-label="Dauer">bis zum Schließen des Tabs</td></tr>
+        <tr><td data-label="Name"><code>ml_shared</code></td><td data-label="Art">Sitzungsspeicher</td><td data-label="Zweck">Link zur zuletzt geöffneten gemeinsamen Liste in diesem Tab</td><td data-label="Dauer">bis zum Schließen des Tabs</td></tr>
+      </tbody>
+    </table>
+    <p>Cookies werden vom Browser bei jedem Seitenaufruf an den Server (GitHub Pages, siehe Abschnitt 3) mitgesendet. Deshalb liegen Schlüssel und Links gemeinsamer Listen bewusst <em>nicht</em> in Cookies, sondern im Sitzungsspeicher, der nie übertragen wird.</p>
+    <p><strong>Rechtsgrundlage:</strong> Die Speicherung ist für die von Ihnen ausdrücklich gewünschten Funktionen (Merkliste, gemeinsame Liste, Einführung) unbedingt erforderlich und erfolgt daher ohne Einwilligung nach § 25 Abs. 2 Nr. 2 TDDDG. Die weitere Verarbeitung stützt sich auf Art. 6 Abs. 1 lit. f DSGVO. Eine Einwilligungsabfrage („Cookie-Banner“) ist deshalb nicht erforderlich.</p>
+    <p>Sie können Cookies und Sitzungsspeicher jederzeit in Ihrem Browser löschen oder blockieren. Die Leuchtenliste funktioniert dann weiter; die Merkliste geht beim Neuladen verloren.</p>
   </section>
 
   <section>

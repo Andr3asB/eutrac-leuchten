@@ -48,10 +48,14 @@
       const old=+readCookies()[NAME+"_n"]||0;
       parts.forEach((p,i)=>setCookie(NAME+"_"+i,p));for(let i=parts.length;i<old;i++)delCookie(NAME+"_"+i);setCookie(NAME+"_n",parts.length);
     },
-    // Merkt sich (pro Browser-Sitzung) die zuletzt geöffnete gemeinsame Liste
-    getShared(){return decodeURIComponent(readCookies()[NAME+"_shared"]||"")},
-    setShared(v){v?setCookie(NAME+"_shared",encodeURIComponent(v)):delCookie(NAME+"_shared")}
+    // Merkt sich die zuletzt geöffnete gemeinsame Liste im Sitzungsspeicher des Tabs.
+    // Bewusst KEIN Cookie: Der Link enthält den Schlüssel, und Cookies gehen bei jedem Aufruf an den Server.
+    getShared(){try{return sessionStorage.getItem("ml_shared")||""}catch(e){return ""}},
+    setShared(v){try{v?sessionStorage.setItem("ml_shared",v):sessionStorage.removeItem("ml_shared")}catch(e){}}
   };
+
+  // Altes Cookie aus früheren Versionen entfernen (enthielt den Link samt Schlüssel)
+  try{if(readCookies()[NAME+"_shared"]!=null)delCookie(NAME+"_shared")}catch(e){}
 
   // ---------- Kryptografie ----------
   const ITER=310000;

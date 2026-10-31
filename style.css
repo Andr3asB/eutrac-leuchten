@@ -248,7 +248,7 @@ dialog .linkrow input{flex:1;min-width:0;font-size:12.5px}
 /* Rechtstexte */
 .wrap.legal{max-width:760px;margin:0 auto;padding:32px 20px 40px}
 .legal main{gap:6px}
-.legal h1{font-size:36px;font-weight:800;font-stretch:120%;margin:8px 0 6px}
+.legal h1{font-size:clamp(26px,7.5vw,36px);font-weight:800;font-stretch:120%;margin:8px 0 6px;hyphens:auto;overflow-wrap:anywhere}
 .legal h2{font-size:18px;font-weight:750;margin:22px 0 6px}
 .legal p,.legal li{line-height:1.6}
 .legal address{font-style:normal;line-height:1.6}
@@ -297,3 +297,15 @@ dialog .linkrow input{flex:1;min-width:0;font-size:12.5px}
   .sitefoot{padding:18px 16px 24px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.store{border-collapse:collapse;width:100%;font-size:13.5px;margin:10px 0}
+.store th,.store td{border-bottom:1px solid var(--linie);padding:8px 8px;text-align:left;vertical-align:top;white-space:normal;position:static;background:none;color:inherit;font-size:13.5px}
+.store th{font-weight:650;color:var(--schiefer)}
+.store code{font-size:12.5px;white-space:nowrap}
+@media (max-width:640px){
+  .store thead{display:none}
+  .store,.store tbody,.store tr,.store td{display:block;width:100%}
+  .store tr{border-bottom:1px solid var(--linie);padding:8px 0}
+  .store td{border:none;padding:2px 0}
+  .store td::before{content:attr(data-label);display:block;font-size:12px;color:var(--schiefer)}
+  .store code{white-space:normal}
+}
