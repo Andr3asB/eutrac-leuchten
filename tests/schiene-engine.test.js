@@ -55,4 +55,23 @@ ok(fis.ok&&fis.nodes.find(n=>n.type==="L").feedIn&&!fib.items.some(i=>/^feed[RL]
 const ii=E.fromSegments(segsOf([[0,0,8,0]]),new Set(["4,0"]),new Set(),500);
 const iis=E.solve(JSON.parse(JSON.stringify(ii)));
 ok(iis.ok&&iis.nodes.some(n=>n.part==="jointFeed")&&ii.edges.length===2&&ii.edges[0].len===2000-60-6.5,"Einspeisung mitten in gerader Linie → I-Verbinder mit Einspeisemöglichkeit");
+// Gedrehte Verbinder: nur die Winkel zwischen den Armen zählen
+const rx=E.fromSegments(new Set(),new Set(["0,0"]),new Set(),500,{diags:new Set(["0,0,2,2","2,2,4,4","0,4,2,2","2,2,4,0"])});
+const rxs=E.solve(JSON.parse(JSON.stringify(rx)));
+ok(rxs.ok&&rxs.nodes.filter(n=>n.part==="X").length===1,"X-Verbinder um 45° gedreht: lösbar");
+// H mit X um 45° gedreht → dieselben Verbinder wie ungedreht
+const rot=([a,b,c,d])=>[a-b+10,a+b,c-d+10,c+d];
+const hxLines=[[0,0,0,6],[8,0,8,6],[0,3,8,3],[4,0,4,6]];
+const toSets=(lines,feed)=>{const segs=new Set(),diags=new Set();lines.forEach(l=>{const [x0,y0,x1,y1]=l;if(y0===y1||x0===x1){segsOf([l]).forEach(u=>segs.add(u))}else{
+  // in Teilstücke an Rasterpunkten der anderen Linien zerlegen: an jedem Punkt mit ganzzahligem Parameter teilen, wo andere Linien enden/kreuzen
+  diags.add(x0<x1?`${x0},${y0},${x1},${y1}`:`${x1},${y1},${x0},${y0}`)}});return {segs,diags,feed}};
+// gedrehte Linien an Knotenpunkten teilen (Knoten des ungedrehten H: Enden, T bei y=3, X bei (4,3))
+const split=[[0,0,0,3],[0,3,0,6],[8,0,8,3],[8,3,8,6],[0,3,4,3],[4,3,8,3],[4,0,4,3],[4,3,4,6]];
+const R=toSets(split.map(rot));
+const rh=E.fromSegments(R.segs,new Set([rot([0,0,0,0]).slice(0,2).join(",")]),new Set(),500,{diags:R.diags});
+const rhs=E.solve(JSON.parse(JSON.stringify(rh)));
+const parts=sol=>sol.nodes.map(n=>n.part).sort().join();
+ok(rhs.ok&&parts(rhs)===parts(E.solve(JSON.parse(JSON.stringify(hx)))),"H mit X um 45° gedreht: dieselben Verbinder wie ungedreht ("+(rhs.ok?parts(rhs):rhs.errors)+")");
+const di=E.fromSegments(new Set(),new Set(),new Set(["2,0,4,2"]),500,{diags:new Set(["2,0,4,2","2,4,4,2","0,2,2,4","0,2,2,0"])});
+ok(E.solve(JSON.parse(JSON.stringify(di))).nodes.every(n=>n.type==="L"),"Raute mit rechten Winkeln: vier L-Verbinder (gedreht)");
 process.exit(fail?1:0);

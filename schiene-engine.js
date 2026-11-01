@@ -89,13 +89,23 @@
       arms[A.id][dA]=e.i;arms[B.id][dB]=e.i;vec[A.id][dA]=[e.ux,e.uy];vec[B.id][dB]=[-e.ux,-e.uy];});
     // c: liegt der SL links in Blickrichtung nach außen, wenn bit=1? leftOut = bit XOR c
     const cOf=(n,d)=>{const e=E[arms[n.id][d]],[vx,vy]=vec[n.id][d];return (vy*e.nx-vx*e.ny)<0?1:0};
+    const dot=(u,v)=>u[0]*v[0]+u[1]*v[1];
+    const geom=n=>{const V=d=>vec[n.id][d],D=Object.keys(arms[n.id]);
+      const perp=(p,q)=>Math.abs(dot(V(p),V(q)))<1e-6, opp=(p,q)=>dot(V(p),V(q))<-1+1e-6;
+      const pair=()=>{for(const p of D)for(const q of D)if(p<q&&opp(p,q))return [p,q];return null};
+      const sorted=()=>[...D].sort((p,q)=>Math.atan2(V(p)[1],V(p)[0])-Math.atan2(V(q)[1],V(q)[0]));
+      return {V,D,perp,opp,pair,sorted,
+        tee(){const pr=pair();if(!pr)return false;const b=D.find(x=>!pr.includes(x));return perp(pr[0],b)},
+        cross(){const so=sorted();return so.every((p,i)=>perp(p,so[(i+1)%4]))}}};
     const need={feed:1,end:1,L:2,T:3,X:4,flex:2,I:2};
     N.forEach(n=>{const d=Object.keys(arms[n.id]),k=d.length;
       if(need[n.type]!==k){errors.push(`${label(n)} hat ${k} statt ${need[n.type]} Anschlüsse.`);return}
-      if(["L","T","X"].includes(n.type)&&d.some(x=>x[0]==="D")){errors.push(`${label(n)}: Eine schräge Schiene lässt sich nicht an einen ${n.type}-Verbinder anschließen, nur über Flex-Verbinder, Einspeiser oder Endkappe.`);return}
-      if(n.type==="L"&&isH(d[0])===isH(d[1]))errors.push(`${label(n)}: Die beiden Schienen müssen einen rechten Winkel bilden.`);
-      if((n.type==="T"||n.type==="I")&&!((d.includes("E")&&d.includes("W"))||(d.includes("N")&&d.includes("S"))))errors.push(`${label(n)}: keine durchgehende Linie.`);
-      if(n.type==="I"&&d.some(x=>x[0]==="D"))errors.push(`${label(n)}: Einspeisung in einer schrägen Schiene nur mit Mitteneinspeiser.`);
+      // L, T, X und I verlangen nur rechte Winkel bzw. eine gerade Linie zwischen ihren Armen; der Verbinder darf gedreht sein
+      const G=geom(n);
+      if(n.type==="L"&&!G.perp(d[0],d[1]))errors.push(`${label(n)}: Die beiden Schienen müssen einen rechten Winkel bilden. Für andere Winkel einen Flex-Verbinder verwenden.`);
+      if(n.type==="I"&&!G.opp(d[0],d[1]))errors.push(`${label(n)}: Die beiden Schienen müssen eine gerade Linie bilden.`);
+      if(n.type==="T"&&!G.tee())errors.push(`${label(n)}: Zwei Schienen müssen eine gerade Linie bilden und die dritte rechtwinklig dazu stehen (der Verbinder darf gedreht eingebaut werden).`);
+      if(n.type==="X"&&!G.cross())errors.push(`${label(n)}: Die vier Schienen müssen paarweise im rechten Winkel stehen (der Verbinder darf gedreht eingebaut werden).`);
       if(n.type==="flex"){const [a,b]=d.map(x=>vec[n.id][x]);const ang=Math.round(Math.acos(Math.max(-1,Math.min(1,a[0]*b[0]+a[1]*b[1])))*180/Math.PI);
         n.angle=ang; if(ang<30)errors.push(`${label(n)}: Winkel ${ang}° ist zu spitz. Der Flex-Verbinder reicht von 30° bis 330°.`);
         if(ang===180)warnings.push(`${label(n)} ist gestreckt (180°). Dort genügt ein elektrischer Längsverbinder.`)}});
@@ -105,12 +115,14 @@
     const build=skip=>{const uf=UF(E.length), conflicts=[];
       const add=(a,b,d,n,why)=>{if(!uf.union(a,b,d))conflicts.push({node:n.id,why})};
       N.forEach(n=>{if(n.id===skip)return;const a=arms[n.id];
-        if(n.type==="T"||n.type==="I"){ if(a.E!=null&&a.W!=null)add(a.E,a.W,0,n,"durchgehende Linie"); else add(a.N,a.S,0,n,"durchgehende Linie") }
-        if(n.type==="L"){ const h=a.E!=null?"E":"W", v=a.N!=null?"N":"S";
-          add(a[h],a[v],(v==="N"?1:0)^(h==="E"?1:0),n,"Schutzleiter innen/außen im L") }
-        if(n.type==="X"){ add(a.S,a.N,1,n,"X-Verbinder"); add(a.E,a.N,0,n,"X-Verbinder"); add(a.W,a.N,1,n,"X-Verbinder") }
-        // Flex: Gelenk in der Deckenebene, nur eine Ausführung → SL bleibt in Laufrichtung auf derselben Seite
-        if(n.type==="flex"){ const [d1,d2]=Object.keys(a); add(a[d1],a[d2],1^cOf(n,d1)^cOf(n,d2),n,"Flex-Verbinder") }
+        // Alle Verbinder in Arm-Koordinaten: „links in Blickrichtung nach außen“ (leftOut = bit XOR c).
+        // Gerade durch (I, T-Linie), um eine Ecke (L, Flex) und zwischen benachbarten X-Armen wechselt leftOut;
+        // d. h. der SL bleibt in Laufrichtung auf derselben Seite, beim X wechselt er beim Geradeausfahren.
+        const diff=(p,q,why)=>add(a[p],a[q],1^cOf(n,p)^cOf(n,q),n,why);
+        const G=geom(n);
+        if(n.type==="T"||n.type==="I"){const [p,q]=G.pair();diff(p,q,"durchgehende Linie")}
+        if(n.type==="L"||n.type==="flex"){const [p,q]=G.D;diff(p,q,n.type==="L"?"Schutzleiter innen/außen im L":"Flex-Verbinder")}
+        if(n.type==="X"){const so=G.sorted();for(let i=0;i<3;i++)diff(so[i],so[i+1],"X-Verbinder")}
       });
       return {uf,conflicts}};
     const {uf,conflicts}=build(null);
@@ -125,11 +137,15 @@
     }
     // Freie Wahl je zusammenhängendem Bauteil: Varianten bevorzugen, die es auch bei SLV gibt (T „innen“),
     // danach die vom Nutzer gewünschte Seite an der ersten Kante.
+    // T-Variante: „innen“ = SL der durchgehenden Linie auf der Seite des Abzweigs; „rechts/links“ = SL des Abzweigs vom Knoten aus gesehen
+    const variantT=(n,bit)=>{const G=geom(n),a=arms[n.id],[p]=G.pair(),b=G.D.find(x=>!G.pair().includes(x));
+      const e=E[a[p]],sg=bit(e.i)?1:-1,inner=dot([e.nx*sg,e.ny*sg],G.V(b))>0,right=(bit(a[b])^cOf(n,b))===0;
+      return (inner?"Tin":"Tout")+(right?"R":"L")};
     const roots=[...new Set(E.map(e=>uf.find(e.i)[0]))];
     const evalAssign=assign=>{
       const bit=i=>{const [r,p]=uf.find(i);return assign[r]^p};
       let score=0;
-      N.forEach(n=>{if(n.type==="T"){const v=variantT(n,arms[n.id],bit,E);if(v.startsWith("Tin"))score+=10}});
+      N.forEach(n=>{if(n.type==="T"){const v=variantT(n,bit);if(v.startsWith("Tin"))score+=10}});
       if(prefs.firstSide&&E.length){const e=E[0];if(!e.diag&&sideOf(e.horiz,bit(0))===prefs.firstSide)score+=1}
       return {score,bit};
     };
@@ -143,20 +159,14 @@
     const nodes=N.map(n=>{const a=arms[n.id];let part=null,variant=null,extra={};
       if(n.type==="end"){part="endcap"}
       if(n.type==="feed"){const d=Object.keys(a)[0],left=edges[a[d]].bit^cOf(n,d);variant=left?"links":"rechts";part=left?"feedL":"feedR";extra.dir=d}
-      if(n.type==="L"){const h=a.E!=null?"E":"W",v=a.N!=null?"N":"S";const inner=edges[a[h]].side===v;variant=inner?"innen":"außen";part=inner?"Lin":"Lout"}
-      if(n.type==="T"){part=variantT(n,a,bit,E);variant=PARTS[part].name.replace(/^T-Verbinder, Schutzleiter /,"")}
-      if(n.type==="X"){part="X";extra.orient=edges[a.N].side==="W"?0:1}
+      if(n.type==="L"){const [p,q]=Object.keys(a);const inner=dot(edges[a[p]].sl,vec[n.id][q])>0;variant=inner?"innen":"außen";part=inner?"Lin":"Lout"}
+      if(n.type==="T"){part=variantT(n,bit);variant=PARTS[part].name.replace(/^T-Verbinder, Schutzleiter /,"")}
+      if(n.type==="X"){part="X"}
       if(n.type==="flex"){part="flex";variant=n.angle+"°"}
       if(n.type==="I"){part="jointFeed"}
       return {...n,part,variant,arms:a,...extra};});
     if(nodes.some(n=>n.part&&(n.part==="ToutR"||n.part==="ToutL")))warnings.push("T-Verbinder „Schutzleiter außen“ gibt es nicht unter SLV-Nummer, nur direkt als EUTRAC-Artikel.");
     return {ok:true,edges,nodes,warnings,errors:[]};
-  }
-  function variantT(n,a,bit,E){
-    const through=a.E!=null&&a.W!=null?["E","W"]:["N","S"];const b=["N","S","E","W"].find(d=>a[d]!=null&&!through.includes(d));
-    const tEdge=a[through[0]], tH=isH(through[0]);const tSide=sideOf(tH,bit(tEdge));
-    const inner=tSide===b; const bSide=sideOf(isH(b),bit(a[b])); const right=bSide===RIGHT[b];
-    return (inner?"Tin":"Tout")+(right?"R":"L");
   }
   function label(n){const t={feed:"Einspeiser",end:"Endkappe",L:"L-Verbinder",T:"T-Verbinder",X:"X-Verbinder",flex:"Flex-Verbinder",I:"I-Verbinder"}[n.type]||n.type;return `${t} ${n.id}`}
 
@@ -251,8 +261,11 @@
     const isNode=p=>{const n=Object.keys(adj[p]);if(n.length!==2||hasDiag(p)||flexPts.has(p)||feeds.has(p))return true;const d=n.map(q=>dirOf(p,q));return !(OPP[d[0]]===d[1])};
     const nodes=[],edges=[],seen=new Set(),idOf={};
     P.filter(isNode).forEach((p,i)=>{const deg=Object.keys(adj[p]).length;const [x,y]=p.split(",").map(Number);
-      const nb=Object.keys(adj[p]),straightThrough=deg===2&&OPP[dirOf(p,nb[0])]===dirOf(p,nb[1]);
-      const type=deg===1?(feeds.has(p)?"feed":"end"):deg===2?(hasDiag(p)||flexPts.has(p)?"flex":straightThrough?"I":"L"):deg===3?"T":"X";
+      const nb=Object.keys(adj[p]),[px,py]=p.split(",").map(Number),vq=nb.map(q=>{const [qx,qy]=q.split(",").map(Number);return [qx-px,qy-py]});
+      const straightThrough=deg===2&&vq[0][0]*vq[1][1]-vq[0][1]*vq[1][0]===0&&vq[0][0]*vq[1][0]+vq[0][1]*vq[1][1]<0;
+      const rightAngle=deg===2&&vq[0][0]*vq[1][0]+vq[0][1]*vq[1][1]===0;
+      // Ecke: rechtwinklig → L-Verbinder (auch gedreht), sonst oder auf Wunsch → Flex-Verbinder
+      const type=deg===1?(feeds.has(p)?"feed":"end"):deg===2?(flexPts.has(p)||(hasDiag(p)&&!rightAngle)?"flex":straightThrough?"I":"L"):deg===3?"T":"X";
       // Einspeisung über einen Verbinder „mit Einspeisemöglichkeit“ (L, T, X, I, Flex laut Katalog)
       const feedIn=deg>=2&&feeds.has(p);
       const id=(type==="flex"?"F":type==="feed"?"E":type[0].toUpperCase())+(i+1);idOf[p]=id;nodes.push({id,type,x,y,key:p,...(feedIn?{feedIn:true}:{})})});

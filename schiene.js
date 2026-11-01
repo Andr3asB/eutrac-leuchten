@@ -46,7 +46,9 @@
     "H mit X statt Mittelsteg":{lines:[[0,0,0,3],[4,0,4,3],[0,1.5,4,1.5],[2,0,2,3]],feeds:[[0,0]]},
     "Katalogbeispiel EUTRAC":{lines:[[0,0,3,0],[0,0,0,2],[1.5,0,1.5,3],[0,2,3,2],[3,2,3,1]],feeds:[[3,0],[3,1],[1.5,3]]},
     "Schräge mit zwei Flex-Verbindern":{lines:[[0,0,2,0],[2,0,4,2],[4,2,6,2]],feeds:[[0,0]]},
-    "Raute (vier Flex-Verbinder)":{lines:[[2,0,4,2],[4,2,2,4],[2,4,0,2],[0,2,2,0]],mids:[[1,1]]},
+    "Raute (gedreht, vier L-Verbinder)":{lines:[[2,0,4,2],[4,2,2,4],[2,4,0,2],[0,2,2,0]],mids:[[1,1]]},
+    "H mit X, um 45° gedreht":{lines:[[1.5,0,0,1.5],[3.5,2,2,3.5],[0.75,0.75,2.75,2.75],[2.5,1,1,2.5]],feeds:[[1.5,0]]},
+    "Achteck (acht Flex-Verbinder)":{lines:[[1,0,3,0],[3,0,4,1],[4,1,4,3],[4,3,3,4],[3,4,1,4],[1,4,0,3],[0,3,0,1],[0,1,1,0]],mids:[[2,0]]},
     "Rahmen mit abgeschrägter Ecke":{lines:[[0,0,3,0],[3,0,4,1],[4,1,4,3],[4,3,0,3],[0,3,0,0]],mids:[[1.5,3]]},
     "Gegenbeispiel: Rahmen mit X-Stummel":{lines:[[0,0.5,4,0.5],[4,0.5,4,3],[4,3,0,3],[0,3,0,0.5],[2,0,2,1.5]],feeds:[[2,1.5]]}
   };
@@ -59,7 +61,7 @@
     $("gridStep").value=String(step);st.step=step;
     st.segs=new Set();st.diags=new Set();st.flex=new Set();st.feeds=new Set();st.mids=new Set();st.autoFeed=null;
     const c=v=>Math.round(v*1000/step);
-    p.lines.forEach(([a,b,x,y])=>addLine(c(a),c(b),c(x),c(y)));
+    p.lines.forEach(([a,b,x,y])=>addLine(c(a),c(b),c(x),c(y)));normalizeDiags();
     (p.feeds||[]).forEach(([x,y])=>st.feeds.add(c(x)+","+c(y)));
     (p.mids||[]).forEach(([x,y])=>{const h=`${c(x)},${c(y)},h`;if(st.segs.has(h))st.mids.add(h);else{const d=[...st.diags].find(d=>{const [a,b,e,f]=d.split(",").map(Number);return Math.abs((a+e)/2-c(x))<1e-6&&Math.abs((b+f)/2-c(y))<1e-6});if(d)st.mids.add(d)}});
     (p.flex||[]).forEach(([x,y])=>st.flex.add(c(x)+","+c(y)));
@@ -69,7 +71,7 @@
   function addLine(x0,y0,x1,y1){
     if(y0===y1)for(let x=Math.min(x0,x1);x<Math.max(x0,x1);x++)st.segs.add(`${x},${y0},h`);
     else if(x0===x1)for(let y=Math.min(y0,y1);y<Math.max(y0,y1);y++)st.segs.add(`${x0},${y},v`);
-    else st.diags.add(x0<x1||(x0===x1&&y0<y1)?`${x0},${y0},${x1},${y1}`:`${x1},${y1},${x0},${y0}`);
+    else addDiag(x0,y0,x1,y1);
   }
   // Rasterwechsel: Form maßstabsgetreu umrechnen, soweit sie auf das neue Raster passt
   function rescale(old,nw){
@@ -246,7 +248,7 @@
     svg.onpointermove=ev=>{if(!start)return;const {x,y}=snapEnd(toGrid(ev));
       const a=pxOf(start.x,start.y),b=pxOf(x,y),l=$("edPrev");l.setAttribute("x1",a.X);l.setAttribute("y1",a.Y);l.setAttribute("x2",b.X);l.setAttribute("y2",b.Y);l.setAttribute("visibility","visible")};
     svg.onpointerup=ev=>{if(!start)return;const {x,y}=snapEnd(toGrid(ev));
-      if(x!==start.x||y!==start.y){snapshot();addLine(start.x,start.y,x,y);
+      if(x!==start.x||y!==start.y){snapshot();addLine(start.x,start.y,x,y);normalizeDiags();
         // Schiene an freies Ende ohne Einspeisung? Erste Schiene bekommt automatisch einen Einspeiser am Startpunkt
         const a=start.x+","+start.y,b=x+","+y;
         if(st.feeds.size===0&&st.mids.size===0){st.feeds.add(a);st.autoFeed=a}
@@ -396,6 +398,23 @@
             setStatus("Von jemand anderem geändert – Ansicht aktualisiert.","ok")}}}
       renderSaveBox()});
     if(db.onRemoteChange)db.onRemoteChange(e=>{if(e&&e.code==="not_found")setStatus("Die gemeinsame Liste wurde gelöscht.","bad")});
+  }
+  // Schräge Linien an Rasterpunkten teilen, an denen andere Schienen enden oder kreuzen → dort entsteht ein Verbinder
+  function addDiag(x0,y0,x1,y1){st.diags.add(x0<x1||(x0===x1&&y0<y1)?`${x0},${y0},${x1},${y1}`:`${x1},${y1},${x0},${y0}`)}
+  function normalizeDiags(){
+    const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);
+    const lat=d=>{const [a,b,c,e]=d.split(",").map(Number),g=gcd(c-a,e-b),r=[];for(let i=1;i<g;i++)r.push((a+(c-a)*i/g)+","+(b+(e-b)*i/g));return r};
+    for(let guard=0;guard<500;guard++){
+      const pts=new Set();for(const u of st.segs){const [x,y,o]=u.split(",");pts.add(x+","+y);pts.add(o==="h"?(+x+1)+","+y:x+","+(+y+1))}
+      for(const d of st.diags){const q=d.split(",");pts.add(q[0]+","+q[1]);pts.add(q[2]+","+q[3])}
+      const cnt={};for(const d of st.diags)lat(d).forEach(k=>cnt[k]=(cnt[k]||0)+1);
+      let hit=null,cut=null;
+      for(const d of st.diags){cut=lat(d).find(k=>pts.has(k)||cnt[k]>1);if(cut){hit=d;break}}
+      if(!hit)return;
+      const [a,b,c,e]=hit.split(",").map(Number),[mx,my]=cut.split(",").map(Number);
+      st.diags.delete(hit);addDiag(a,b,mx,my);addDiag(mx,my,c,e);
+      if(st.mids.has(hit)){st.mids.delete(hit);st.mids.add(a<mx||(a===mx&&b<my)?`${a},${b},${mx},${my}`:`${mx},${my},${a},${b}`)}
+    }
   }
   function layoutNow(step){return E.fromSegments(st.segs,st.feeds,st.mids,step,{diags:st.diags,flex:st.flex})}
   let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(st.shape==="draw")render()},150)});
