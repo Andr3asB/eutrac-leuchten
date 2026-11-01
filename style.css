@@ -488,3 +488,15 @@ figure.failed img{display:none}
 .railitem a{color:var(--ink);font-weight:600}
 .railitem .p{color:var(--schiefer);font-size:13px;white-space:nowrap}
 .rails .addrail{align-self:flex-start;padding-left:0}
+
+/* Gemeinsame Kopfzeile: Leuchten und Schienen gleichberechtigt */
+.appbar{display:flex;align-items:center;gap:14px 20px;flex-wrap:wrap;margin-bottom:18px}
+.brand{font-weight:800;font-stretch:118%;font-size:17px;color:var(--ink);text-decoration:none;letter-spacing:-.005em}
+.brand span{font-weight:500;font-stretch:100%;color:var(--schiefer);font-size:14px;margin-left:4px}
+.apptabs{display:inline-flex;background:var(--karte);border:1px solid var(--linie);border-radius:999px;padding:4px;gap:2px}
+.apptabs a{padding:9px 20px;border-radius:999px;color:var(--ink);text-decoration:none;font-weight:650;font-size:15px;min-height:40px;display:inline-flex;align-items:center}
+.apptabs a:hover{background:var(--putz)}
+.apptabs a[aria-current=page]{background:var(--ink);color:var(--karte)}
+.appbar .tourbtn{margin-left:auto}
+@media (min-width:761px){.top h1{font-size:40px}}
+@media (max-width:600px){.brand span{display:none}.apptabs{order:3;width:100%}.apptabs a{flex:1;justify-content:center}.top h1{font-size:32px}}

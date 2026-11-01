@@ -3,23 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Schienenplaner – Leuchten für EUTRAC</title>
+<title>Schienen – Lichtplaner für EUTRAC</title>
 <meta name="description" content="Stückliste für die EUTRAC 3-Phasen-Aufbauschiene: Schienen, Einspeiser, Verbinder, Endkappen und Befestigung – mit richtiger Lage des Schutzleiters.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="theme-color" content="#262E3C">
-<link rel="stylesheet" href="fonts.css?v=20261101l">
-<link rel="stylesheet" href="style.css?v=20261101l">
+<link rel="stylesheet" href="fonts.css?v=20261101m">
+<link rel="stylesheet" href="style.css?v=20261101m">
 </head>
 <body class="planner">
 <a class="skiplink" href="#planOut">Zur Stückliste springen</a>
 <header class="top">
+  <div class="appbar">
+    <a class="brand" href="./">Lichtplaner <span>für EUTRAC‑3‑Phasen‑Schienen</span></a>
+    <nav class="apptabs" aria-label="Planer">
+      <a href="./" id="tabLamps">Leuchten</a>
+      <a href="schiene.html" id="tabRails" aria-current="page">Schienen</a>
+    </nav>
+  </div>
   <div class="topin">
     <div>
-      <p class="back"><a href="./">← Zur Leuchtenliste</a></p>
-      <h1>Schienenplaner</h1>
-      <p class="lead">Stückliste für die EUTRAC‑3‑Phasen‑Aufbauschiene: Schienen, Einspeiser, Verbinder, Endkappen und Befestigung. Der Planer wählt die Varianten so, dass der Schutzleiter durchgängig richtig liegt, und zeigt, was noch fehlt.</p>
+      <h1>Schienen planen</h1>
+      <p class="lead">Stückliste für die EUTRAC‑3‑Phasen‑Aufbauschiene: Schienen, Einspeiser, Verbinder, Endkappen und Befestigung. Der Planer wählt die Varianten so, dass der Schutzleiter durchgängig richtig liegt, und zeigt, was noch fehlt. Gespeichert wird je Raum im selben Lichtplan wie die Leuchten.</p>
     </div>
   </div>
 </header>
@@ -140,7 +146,7 @@
   </main>
 </div>
 
-<footer class="sitefoot"><a href="./">Leuchtenliste</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
+<footer class="sitefoot"><a href="./">Leuchten auswählen</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
 
 <dialog id="pwDlg">
   <form id="pwForm">
@@ -152,10 +158,10 @@
   </form>
 </dialog>
 
-<script src="config.js?v=20261101l"></script>
-<script src="vendor/supabase-2.117.3.js?v=20261101l"></script>
-<script src="merkliste-store.js?v=20261101l"></script>
-<script src="schiene-engine.js?v=20261101l"></script>
-<script src="schiene.js?v=20261101l"></script>
+<script src="config.js?v=20261101m"></script>
+<script src="vendor/supabase-2.117.3.js?v=20261101m"></script>
+<script src="merkliste-store.js?v=20261101m"></script>
+<script src="schiene-engine.js?v=20261101m"></script>
+<script src="schiene.js?v=20261101m"></script>
 </body>
 </html>

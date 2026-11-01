@@ -89,12 +89,13 @@
       arms[A.id][dA]=e.i;arms[B.id][dB]=e.i;vec[A.id][dA]=[e.ux,e.uy];vec[B.id][dB]=[-e.ux,-e.uy];});
     // c: liegt der SL links in Blickrichtung nach außen, wenn bit=1? leftOut = bit XOR c
     const cOf=(n,d)=>{const e=E[arms[n.id][d]],[vx,vy]=vec[n.id][d];return (vy*e.nx-vx*e.ny)<0?1:0};
-    const need={feed:1,end:1,L:2,T:3,X:4,flex:2};
+    const need={feed:1,end:1,L:2,T:3,X:4,flex:2,I:2};
     N.forEach(n=>{const d=Object.keys(arms[n.id]),k=d.length;
       if(need[n.type]!==k){errors.push(`${label(n)} hat ${k} statt ${need[n.type]} Anschlüsse.`);return}
       if(["L","T","X"].includes(n.type)&&d.some(x=>x[0]==="D")){errors.push(`${label(n)}: Eine schräge Schiene lässt sich nicht an einen ${n.type}-Verbinder anschließen, nur über Flex-Verbinder, Einspeiser oder Endkappe.`);return}
       if(n.type==="L"&&isH(d[0])===isH(d[1]))errors.push(`${label(n)}: Die beiden Schienen müssen einen rechten Winkel bilden.`);
-      if(n.type==="T"&&!((d.includes("E")&&d.includes("W"))||(d.includes("N")&&d.includes("S"))))errors.push(`${label(n)}: keine durchgehende Linie.`);
+      if((n.type==="T"||n.type==="I")&&!((d.includes("E")&&d.includes("W"))||(d.includes("N")&&d.includes("S"))))errors.push(`${label(n)}: keine durchgehende Linie.`);
+      if(n.type==="I"&&d.some(x=>x[0]==="D"))errors.push(`${label(n)}: Einspeisung in einer schrägen Schiene nur mit Mitteneinspeiser.`);
       if(n.type==="flex"){const [a,b]=d.map(x=>vec[n.id][x]);const ang=Math.round(Math.acos(Math.max(-1,Math.min(1,a[0]*b[0]+a[1]*b[1])))*180/Math.PI);
         n.angle=ang; if(ang<30)errors.push(`${label(n)}: Winkel ${ang}° ist zu spitz. Der Flex-Verbinder reicht von 30° bis 330°.`);
         if(ang===180)warnings.push(`${label(n)} ist gestreckt (180°). Dort genügt ein elektrischer Längsverbinder.`)}});
@@ -104,7 +105,7 @@
     const build=skip=>{const uf=UF(E.length), conflicts=[];
       const add=(a,b,d,n,why)=>{if(!uf.union(a,b,d))conflicts.push({node:n.id,why})};
       N.forEach(n=>{if(n.id===skip)return;const a=arms[n.id];
-        if(n.type==="T"){ if(a.E!=null&&a.W!=null)add(a.E,a.W,0,n,"durchgehende Linie im T"); else add(a.N,a.S,0,n,"durchgehende Linie im T") }
+        if(n.type==="T"||n.type==="I"){ if(a.E!=null&&a.W!=null)add(a.E,a.W,0,n,"durchgehende Linie"); else add(a.N,a.S,0,n,"durchgehende Linie") }
         if(n.type==="L"){ const h=a.E!=null?"E":"W", v=a.N!=null?"N":"S";
           add(a[h],a[v],(v==="N"?1:0)^(h==="E"?1:0),n,"Schutzleiter innen/außen im L") }
         if(n.type==="X"){ add(a.S,a.N,1,n,"X-Verbinder"); add(a.E,a.N,0,n,"X-Verbinder"); add(a.W,a.N,1,n,"X-Verbinder") }
@@ -146,6 +147,7 @@
       if(n.type==="T"){part=variantT(n,a,bit,E);variant=PARTS[part].name.replace(/^T-Verbinder, Schutzleiter /,"")}
       if(n.type==="X"){part="X";extra.orient=edges[a.N].side==="W"?0:1}
       if(n.type==="flex"){part="flex";variant=n.angle+"°"}
+      if(n.type==="I"){part="jointFeed"}
       return {...n,part,variant,arms:a,...extra};});
     if(nodes.some(n=>n.part&&(n.part==="ToutR"||n.part==="ToutL")))warnings.push("T-Verbinder „Schutzleiter außen“ gibt es nicht unter SLV-Nummer, nur direkt als EUTRAC-Artikel.");
     return {ok:true,edges,nodes,warnings,errors:[]};
@@ -156,7 +158,7 @@
     const inner=tSide===b; const bSide=sideOf(isH(b),bit(a[b])); const right=bSide===RIGHT[b];
     return (inner?"Tin":"Tout")+(right?"R":"L");
   }
-  function label(n){const t={feed:"Einspeiser",end:"Endkappe",L:"L-Verbinder",T:"T-Verbinder",X:"X-Verbinder",flex:"Flex-Verbinder"}[n.type]||n.type;return `${t} ${n.id}`}
+  function label(n){const t={feed:"Einspeiser",end:"Endkappe",L:"L-Verbinder",T:"T-Verbinder",X:"X-Verbinder",flex:"Flex-Verbinder",I:"I-Verbinder"}[n.type]||n.type;return `${t} ${n.id}`}
 
   // ---------- Schienen zuschneiden ----------
   // Weniger Stücke zuerst, dann weniger Verschnitt; das letzte Stück wird bei Bedarf gekürzt.
@@ -204,7 +206,9 @@
       notes.push(`Abhängung: ${pts} Abhängepunkte im Abstand von höchstens ${sp/1000} m. Belastbarkeit laut EUTRAC: ${sp>=1000?"3 kg":"5 kg"} je Last bei Lasten im Abstand von 33 cm.`);
     }
     // Prüfungen
-    const feeds=solved.nodes.filter(n=>n.type==="feed").length+solved.edges.filter(e=>e.midFeed).length;
+    const viaNode=solved.nodes.filter(n=>n.feedIn);
+    const feeds=solved.nodes.filter(n=>n.type==="feed").length+solved.edges.filter(e=>e.midFeed).length+viaNode.length;
+    if(viaNode.length)notes.push(`Einspeisung über ${viaNode.map(n=>label(n)).join(", ")}: Die Zuleitung wird direkt am Verbinder angeschlossen (Ausführung „mit Einspeisemöglichkeit“, kein eigener Einspeiser nötig).`);
     const ends=solved.nodes.filter(n=>n.type==="end").length;
     checks.push({ok:feeds>=1,text:feeds?`Einspeisung vorhanden (${feeds}×)`:"Keine Einspeisung – die Schiene bekommt keinen Strom."});
     if(feeds>1)checks.push({ok:false,warn:true,text:"Mehr als eine Einspeisung in einem zusammenhängenden System: nur zulässig, wenn die Stromkreise getrennt sind (z. B. Stromkreistrenner). Fachplaner fragen."});
@@ -232,7 +236,7 @@
   // feeds: Set von Punkten "x,y" (nur an freien Enden wirksam), mids: Set von Einheitsstrecken mit Mitteneinspeiser
   // Platzbedarf der Verbinder ab Achsmitte laut Katalog: T/X 120 mm → 60 je Arm, L-Schenkel 78 mm außen → 60 ab Ecke,
   // Einspeiser 72 mm, Endkappe 6,5 mm. Die Schienenlänge ist die gezeichnete Achslänge minus diese Anteile.
-  const DEDUCT={L:60,T:60,X:60,flex:60,feed:72,end:6.5};
+  const DEDUCT={L:60,T:60,X:60,flex:60,I:60,feed:72,end:6.5};
   // opts.diags: Set schräger Schienen "x0,y0,x1,y1"; opts.flex: Set von Ecken "x,y", an denen statt L ein Flex-Verbinder sitzt
   function fromSegments(segs,feeds,mids,stepMM,opts={}){
     const diags=opts.diags||new Set(), flexPts=opts.flex||new Set();
@@ -244,11 +248,14 @@
     const P=Object.keys(adj); const isDiag=s=>s.split(",").length===4;
     const dirOf=(a,b)=>{const [ax,ay]=a.split(",").map(Number),[bx,by]=b.split(",").map(Number);return bx>ax?"E":bx<ax?"W":by>ay?"S":"N"};
     const hasDiag=p=>Object.values(adj[p]).some(isDiag);
-    const isNode=p=>{const n=Object.keys(adj[p]);if(n.length!==2||hasDiag(p)||flexPts.has(p))return true;const d=n.map(q=>dirOf(p,q));return !(OPP[d[0]]===d[1])};
+    const isNode=p=>{const n=Object.keys(adj[p]);if(n.length!==2||hasDiag(p)||flexPts.has(p)||feeds.has(p))return true;const d=n.map(q=>dirOf(p,q));return !(OPP[d[0]]===d[1])};
     const nodes=[],edges=[],seen=new Set(),idOf={};
     P.filter(isNode).forEach((p,i)=>{const deg=Object.keys(adj[p]).length;const [x,y]=p.split(",").map(Number);
-      const type=deg===1?(feeds.has(p)?"feed":"end"):deg===2?(hasDiag(p)||flexPts.has(p)?"flex":"L"):deg===3?"T":"X";
-      const id=(type==="flex"?"F":type==="feed"?"E":type[0].toUpperCase())+(i+1);idOf[p]=id;nodes.push({id,type,x,y,key:p})});
+      const nb=Object.keys(adj[p]),straightThrough=deg===2&&OPP[dirOf(p,nb[0])]===dirOf(p,nb[1]);
+      const type=deg===1?(feeds.has(p)?"feed":"end"):deg===2?(hasDiag(p)||flexPts.has(p)?"flex":straightThrough?"I":"L"):deg===3?"T":"X";
+      // Einspeisung über einen Verbinder „mit Einspeisemöglichkeit“ (L, T, X, I, Flex laut Katalog)
+      const feedIn=deg>=2&&feeds.has(p);
+      const id=(type==="flex"?"F":type==="feed"?"E":type[0].toUpperCase())+(i+1);idOf[p]=id;nodes.push({id,type,x,y,key:p,...(feedIn?{feedIn:true}:{})})});
     // Ringe ohne Knoten gibt es nicht (gerade Ringe sind unmöglich); jede Kette läuft von Knoten zu Knoten
     nodes.forEach(n=>{Object.keys(adj[n.key]).forEach(q=>{
       const first=adj[n.key][q]; if(seen.has(first))return;

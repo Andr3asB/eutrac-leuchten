@@ -1,6 +1,6 @@
 {
-  "name": "Leuchten für EUTRAC",
-  "short_name": "Leuchten",
+  "name": "Lichtplaner für EUTRAC",
+  "short_name": "Lichtplaner",
   "description": "Phasendimmbare Strahler für EUTRAC-3-Phasen-Schienen vergleichen, pro Raum merken und gemeinsam planen.",
   "lang": "de",
   "start_url": "./",

@@ -316,7 +316,7 @@ function buildPrint(){
   const arts=[...byArt.values()].sort((x,y)=>x.r.brand.localeCompare(y.r.brand)||x.r.model.localeCompare(y.r.model,"de"));
   const total=arts.reduce((s,e)=>s+(e.r.price||0)*e.n,0), totalW=arts.reduce((s,e)=>s+(e.r.w||0)*e.n,0), nTot=arts.reduce((s,e)=>s+e.n,0), noPrice=arts.filter(e=>e.r.price==null).length;
   const today=new Date().toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"});
-  let h=`<header><h1>Lichtplan</h1><p>Leuchten für EUTRAC-3-Phasen-Schienen · Stand ${today} · ${nTot?`${nTot} Leuchten in ${rooms.length} ${rooms.length===1?"Raum":"Räumen"}`:"Schienenpläne"}</p></header>
+  let h=`<header><h1>Lichtplan</h1><p>Lichtplaner für EUTRAC-3-Phasen-Schienen · Stand ${today} · ${nTot?`${nTot} Leuchten in ${rooms.length} ${rooms.length===1?"Raum":"Räumen"}`:"Schienenpläne"}</p></header>
   <h2>Bestellliste</h2>
   <table><thead><tr><th class="n">Stück</th><th>Art.-Nr.</th><th>Leuchte</th><th>Lichtfarbe</th><th>Winkel</th><th class="n">Watt</th><th class="n">Lumen</th><th>Dimmung</th><th class="n">Einzelpreis ab</th><th class="n">Summe ab</th></tr></thead><tbody>
   ${arts.map(({r,n})=>`<tr><td class="n"><b>${n}</b></td><td>${esc(r.art)}</td><td><b>${esc(r.brand)}</b> ${esc(r.model)}</td><td>${esc(r.cctLabel)}</td><td>${esc(r.angleLabel)}</td><td class="n">${fmt(r.w)}</td><td class="n">${ATTR.lm.show(r).replace(/ lm$/,"")}</td><td>${esc(r.dim)}</td><td class="n">${eur(r.price)}</td><td class="n">${r.price==null?"–":eur(r.price*n)}</td></tr>`).join("")}
@@ -487,6 +487,7 @@ function goLocal(msg){S.leaveShared();history.replaceState(null,"",location.path
 
 const shareBar=document.getElementById("shareBar");
 function renderShareBar(){
+  const tr=document.getElementById("tabRails");if(tr)tr.href="schiene.html"+shareHash();
   if(db&&db.mode==="shared"){
     shareBar.innerHTML=`<span class="badge">Gemeinsam${db.hasPassword?" · 🔒":""}</span><button class="btn" type="button" data-share="copy">Link kopieren</button><button class="btn link" type="button" data-share="local">Zur lokalen Liste</button><button class="btn link" type="button" data-share="delete">Löschen</button>`;
   }else{

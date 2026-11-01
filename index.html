@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Leuchten für EUTRAC</title>
+<title>Leuchten – Lichtplaner für EUTRAC</title>
 <meta name="description" content="Phasendimmbare Strahler und Pendel für EUTRAC-3-Phasen-Schienen vergleichen, pro Raum merken und mit Familie oder Elektriker teilen.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="de_DE">
-<meta property="og:site_name" content="Leuchten für EUTRAC">
+<meta property="og:site_name" content="Lichtplaner für EUTRAC">
 <meta property="og:title" content="Leuchten für EUTRAC">
 <meta property="og:description" content="Phasendimmbare Strahler und Pendel für EUTRAC-3-Phasen-Schienen vergleichen, pro Raum merken und mit Familie oder Elektriker teilen.">
 <meta property="og:url" content="https://licht.16schwaben.de/">
@@ -22,19 +22,25 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <meta name="theme-color" content="#262E3C">
-<link rel="stylesheet" href="fonts.css?v=20261101l">
-<link rel="stylesheet" href="style.css?v=20261101l">
+<link rel="stylesheet" href="fonts.css?v=20261101m">
+<link rel="stylesheet" href="style.css?v=20261101m">
 </head>
 <body>
 <a class="skiplink" href="#leuchten">Zur Leuchtenliste springen</a>
 <header class="top">
+  <div class="appbar">
+    <a class="brand" href="./">Lichtplaner <span>für EUTRAC‑3‑Phasen‑Schienen</span></a>
+    <nav class="apptabs" aria-label="Planer">
+      <a href="./" id="tabLamps" aria-current="page">Leuchten</a>
+      <a href="schiene.html" id="tabRails">Schienen</a>
+    </nav>
+    <button type="button" class="ghost tourbtn" id="tourBtn" aria-label="Einführungstour starten">? Tour</button>
+  </div>
   <div class="topin">
     <div>
-      <h1>Leuchten für EUTRAC</h1>
-      <p class="lead">Phasendimmbare Strahler und Pendel für EUTRAC‑3‑Phasen‑Schienen: SLV ohne DALI, dazu Deko‑Light, ERCO, ISOLED, Molto Luce, Occhio und Paulmann. Filtern, die Unterschiede vergleichen, pro Raum merken und mit Familie oder Elektriker teilen. Stand: 31.10.2026.</p>
+      <h1>Leuchten auswählen</h1>
+      <p class="lead">Phasendimmbare Strahler und Pendel für EUTRAC‑3‑Phasen‑Schienen: SLV ohne DALI, dazu Deko‑Light, ERCO, ISOLED, Molto Luce, Occhio und Paulmann. Filtern, die Unterschiede vergleichen, pro Raum merken und mit Familie oder Elektriker teilen. Die Schienen dazu planst du im Reiter „Schienen“ – beides landet im selben Lichtplan. Stand: 31.10.2026.</p>
     </div>
-    <div class="topbtns"><a class="ghost plannerlink" href="schiene.html">Schienenplaner</a>
-      <button type="button" class="ghost tourbtn" id="tourBtn" aria-label="Einführungstour starten">? Tour</button></div>
   </div>
 </header>
 
@@ -129,7 +135,7 @@
 
 <section class="printplan" id="printPlan" aria-hidden="true"></section>
 
-<footer class="sitefoot"><button type="button" class="linkbtn" id="tourLink">Tour</button><a href="schiene.html">Schienenplaner</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
+<footer class="sitefoot"><button type="button" class="linkbtn" id="tourLink">Tour</button><a href="schiene.html">Schienen planen</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
 
 <dialog id="imgDlg" class="imgdlg" aria-labelledby="imgCap">
   <figure class="loading">
@@ -188,11 +194,11 @@
   </form>
 </dialog>
 
-<script src="config.js?v=20261101l"></script>
-<script src="vendor/supabase-2.117.3.js?v=20261101l"></script>
-<script src="merkliste-store.js?v=20261101l"></script>
-<script src="schiene-engine.js?v=20261101l"></script>
-<script src="tour.js?v=20261101l"></script>
-<script src="app.js?v=20261101l"></script>
+<script src="config.js?v=20261101m"></script>
+<script src="vendor/supabase-2.117.3.js?v=20261101m"></script>
+<script src="merkliste-store.js?v=20261101m"></script>
+<script src="schiene-engine.js?v=20261101m"></script>
+<script src="tour.js?v=20261101m"></script>
+<script src="app.js?v=20261101m"></script>
 </body>
 </html>

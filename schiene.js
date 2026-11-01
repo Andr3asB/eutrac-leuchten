@@ -22,7 +22,7 @@
   $("haveFeed").addEventListener("input",()=>{applyHave();render()});
   $("printBtn").onclick=()=>window.print();
   $("undo").onclick=()=>{const s=st.undo.pop();if(s){restore(s);render()}};
-  $("clearAll").onclick=()=>{snapshot();st.segs.clear();st.diags.clear();st.flex.clear();st.feeds.clear();st.mids.clear();render()};
+  $("clearAll").onclick=()=>{snapshot();st.autoFeed=null;st.segs.clear();st.diags.clear();st.flex.clear();st.feeds.clear();st.mids.clear();render()};
   $("bom").addEventListener("change",e=>{const k=e.target.dataset.have;if(k){st.have[k]=e.target.checked;render()}});
 
   function applyHave(){
@@ -57,7 +57,7 @@
     const all=[...p.lines.flat(),...(p.feeds||[]).flat(),...(p.mids||[]).flat()];
     const step=[1000,500,250,100].find(s=>all.every(v=>Math.abs(v*1000/s-Math.round(v*1000/s))<1e-6));
     $("gridStep").value=String(step);st.step=step;
-    st.segs=new Set();st.diags=new Set();st.flex=new Set();st.feeds=new Set();st.mids=new Set();
+    st.segs=new Set();st.diags=new Set();st.flex=new Set();st.feeds=new Set();st.mids=new Set();st.autoFeed=null;
     const c=v=>Math.round(v*1000/step);
     p.lines.forEach(([a,b,x,y])=>addLine(c(a),c(b),c(x),c(y)));
     (p.feeds||[]).forEach(([x,y])=>st.feeds.add(c(x)+","+c(y)));
@@ -112,8 +112,9 @@
       $("toolHint").textContent={draw:"Auf einen Rasterpunkt drücken und waagrecht oder senkrecht ziehen. Wo Schienen sich treffen, entstehen automatisch L-, T- oder X-Verbinder.",
         diag:"Von einem Rasterpunkt zu einem beliebigen anderen ziehen. Schräge Schienen werden über Flex-Verbinder (30° bis 330°) angeschlossen; die setzt der Planer automatisch.",
         flex:"Auf eine rechtwinklige Ecke tippen: Flex-Verbinder statt L-Verbinder (und zurück).",
-        feed:"Auf ein freies Schienenende tippen: Einspeiser an/aus. Auf eine Schiene tippen: Mitteneinspeiser an/aus.",
+        feed:"Auf einen Punkt der Schiene tippen: Einspeisung an/aus – am Ende als Einspeiser, an einem Verbinder über dessen Einspeisemöglichkeit. Zwischen zwei Rasterpunkten tippen: Mitteneinspeiser.",
         erase:"Auf eine Schiene tippen, um sie bis zum nächsten Verbinder zu löschen."}[st.tool];
+      if(st.msg){$("toolHint").textContent=st.msg;st.msg=""}
       if(!st.segs.size&&!st.diags.size){drawGrid(null,null);clearOut();err.innerHTML=`<p class="fine">Noch keine Schiene gezeichnet. Ziehe eine Linie auf dem Raster oder wähle eine Vorlage.</p>`;return}
       layout=layoutNow(st.step);
       if(layout.crossings.length){drawGrid(layout,null);clearOut();err.innerHTML=`<p class="err">Eine schräge Schiene kreuzt eine andere Schiene ohne Verbinder (rot markiert). Schienen dürfen sich nur an Verbindern treffen; schräg geht das nur an freien Enden über Flex-Verbinder.</p>`;return}
@@ -207,11 +208,12 @@
       const conflictIds=new Set((solved&&solved.conflicts||[]).map(c=>c.node));
       const sn=solved&&solved.nodes?Object.fromEntries(solved.nodes.map(n=>[n.id,n])):{};
       layout.nodes.forEach(n=>{const x=PX(n.x),y=PY(n.y),v=sn[n.id],bad=conflictIds.has(n.id);
-        const lab={feed:"Einspeiser",end:"",L:"L",T:"T",X:"X",flex:"Flex"}[n.type]+(v&&v.variant&&n.type!=="end"?" "+short(v.variant,n.type):"");
+        const lab={feed:"Einspeiser",end:"",L:"L",T:"T",X:"X",flex:"Flex",I:"I"}[n.type]+(v&&v.variant&&n.type!=="end"?" "+short(v.variant,n.type):"")+(n.feedIn?" + Einspeisung":"");
         if(n.type==="end")s+=`<circle cx="${x}" cy="${y}" r="5" class="ednode end${bad?" bad":""}"/>`;
         else if(n.type==="feed")s+=`<rect x="${x-9}" y="${y-9}" width="18" height="18" class="feed${bad?" bad":""}"/>`;
         else if(n.type==="flex")s+=`<circle cx="${x}" cy="${y}" r="8.5" class="ednode${bad?" bad":""}"/>`;
         else s+=`<rect x="${x-8}" y="${y-8}" width="16" height="16" class="ednode${bad?" bad":""}"/>`;
+        if(n.feedIn)s+=`<rect x="${x+5}" y="${y+5}" width="11" height="11" class="feed"/>`;
         if(lab.trim())s+=`<text x="${x+12}" y="${y-10}" class="tNode${bad?" bad":""}">${esc(lab)}</text>`;});
     }
     s+=`<line id="edPrev" x1="0" y1="0" x2="0" y2="0" class="edprev" visibility="hidden"/></svg>`;
@@ -246,7 +248,12 @@
     svg.onpointerup=ev=>{if(!start)return;const {x,y}=snapEnd(toGrid(ev));
       if(x!==start.x||y!==start.y){snapshot();addLine(start.x,start.y,x,y);
         // Schiene an freies Ende ohne Einspeisung? Erste Schiene bekommt automatisch einen Einspeiser am Startpunkt
-        if(st.feeds.size===0&&st.mids.size===0)st.feeds.add(start.x+","+start.y)}
+        const a=start.x+","+start.y,b=x+","+y;
+        if(st.feeds.size===0&&st.mids.size===0){st.feeds.add(a);st.autoFeed=a}
+        // Verlängert am Einspeiser? Einspeiser wandert ans neue freie Ende
+        else for(const [from,to] of [[a,b],[b,a]])if(st.feeds.has(from)&&degree(from)===2&&degree(to)===1){
+          st.feeds.delete(from);st.feeds.add(to);if(st.autoFeed===from)st.autoFeed=to;
+          st.msg="Der Einspeiser ist ans neue Schienenende gewandert. Soll er am Verbinder bleiben: mit „Einspeisung“ auf den Verbinder tippen (Verbinder mit Einspeisemöglichkeit).";break}}
       start=null;render()};
     svg.onpointercancel=()=>{start=null;render()};
   }
@@ -264,10 +271,14 @@
     const n=layoutNow(st.step).nodes.find(n=>n.key===pt);
     if(!n||(n.type!=="L"&&!(n.type==="flex"&&st.flex.has(pt)))){$("toolHint").textContent=n&&n.type==="flex"?"Hier sitzt schon ein Flex-Verbinder, weil eine schräge Schiene anschließt.":"Ein Flex-Verbinder ersetzt nur einen L-Verbinder an einer rechtwinkligen Ecke. Für schräge Schienen das Werkzeug „Schräg ziehen“ nehmen.";return}
     snapshot();st.flex.has(pt)?st.flex.delete(pt):st.flex.add(pt);render()}
+  // Einspeisung setzen/entfernen: an jedem Schienenpunkt (Ende → Einspeiser, Verbinder → mit Einspeisemöglichkeit,
+  // mitten in gerader Linie → I-Verbinder), zwischen Rasterpunkten → Mitteneinspeiser.
+  // Der beim ersten Strich automatisch gesetzte Einspeiser fällt weg, sobald man selbst eine Einspeisung setzt.
+  function dropAuto(except){if(st.autoFeed&&st.autoFeed!==except){st.feeds.delete(st.autoFeed);st.msg="Der automatisch gesetzte Einspeiser wurde entfernt."}st.autoFeed=null}
   function toggleFeed(p){
-    const pt=p.x+","+p.y, near=Math.hypot(p.gx-p.x,p.gy-p.y)<0.35;
-    if(near&&degree(pt)===1){snapshot();st.feeds.has(pt)?st.feeds.delete(pt):st.feeds.add(pt);render();return}
-    const sg=nearestSeg(p);if(sg){snapshot();st.mids.has(sg)?st.mids.delete(sg):st.mids.add(sg);render()}
+    const pt=p.x+","+p.y, near=Math.hypot(p.gx-p.x,p.gy-p.y)<0.3;
+    if(near&&degree(pt)>=1){snapshot();if(st.feeds.has(pt)){st.feeds.delete(pt);if(st.autoFeed===pt)st.autoFeed=null}else{dropAuto(pt);st.feeds.add(pt)}render();return}
+    const sg=nearestSeg(p);if(sg){snapshot();if(st.mids.has(sg))st.mids.delete(sg);else{dropAuto();st.mids.add(sg)}render()}
   }
   function eraseAt(p){
     const sg=nearestSeg(p);if(!sg)return;snapshot();
@@ -275,7 +286,7 @@
     const L=layoutNow(st.step);const e=L.edges.find(e=>e.units.includes(sg));
     (e?e.units:[sg]).forEach(u=>{st.segs.delete(u);st.diags.delete(u);st.mids.delete(u)});
     // Einspeiser an Punkten, die kein freies Ende mehr sind, entfernen
-    [...st.feeds].forEach(f=>{if(degree(f)!==1)st.feeds.delete(f)});
+    [...st.feeds].forEach(f=>{if(degree(f)===0)st.feeds.delete(f)});
     render();
   }
 
@@ -303,7 +314,7 @@
       document.querySelectorAll("[data-feed]").forEach(x=>x.setAttribute("aria-checked",x.dataset.feed===st.feed))}
     else{const g=E.planSegs(p);st.segs=g.segs;st.diags=g.diags;st.flex=g.flex;st.feeds=g.feeds;st.mids=g.mids;st.step=p.st||500;$("gridStep").value=String(st.step);
       if(p.a){$("areaW").value=String(p.a[0]).replace(".",",");$("areaH").value=String(p.a[1]).replace(".",",")}}
-    st.undo=[];applying=false;
+    st.undo=[];st.autoFeed=null;applying=false;
   }
   function openPlan(id){
     const p=plans.find(x=>x.id===id);if(!p)return false;
@@ -370,6 +381,7 @@
       catch(e){db=S.openLocal();setStatus("Die gemeinsame Liste konnte nicht geöffnet werden. Gespeichert wird in der Merkliste dieses Browsers.","bad")}}
     else db=S.openLocal();
     if(db.mode==="shared"&&$("saveStatus").textContent.endsWith("…"))setStatus("Gemeinsame Liste geöffnet. Gespeicherte Pläne sehen alle, die den Link haben.");
+    if(db.mode==="shared"&&db.link){const h=new URL(db.link).hash;$("tabLamps").href="./"+h;$("tabRails").href="schiene.html"+h}
     if(db.mode==="local"&&!db.persistent)setStatus("Cookies sind blockiert: Pläne bleiben nur bis zum Neuladen erhalten.","bad");
     db.collection("raeume").onSnapshot(sn=>{rooms=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.pos||0)-(b.pos||0));renderSaveBox()});
     db.collection("schienen").onSnapshot(sn=>{plans=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.t||0)-(b.t||0));

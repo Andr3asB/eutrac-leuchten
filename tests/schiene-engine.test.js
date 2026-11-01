@@ -48,4 +48,11 @@ const dt=E.fromSegments(segsOf([[0,0,8,0]]),new Set(["0,0"]),new Set(),500,{diag
 ok(!E.solve(JSON.parse(JSON.stringify(dt))).ok,"Schräge an T-Knoten wird abgelehnt");
 const cx=E.fromSegments(segsOf([[2,0,2,4]]),new Set(),new Set(),500,{diags:new Set(["0,1,4,3"])});
 ok(cx.crossings.length===1,"Schräge über eine andere Schiene: Kreuzung erkannt");
+// Einspeisung über Verbinder
+const fi=E.fromSegments(segsOf([[0,0,6,0],[6,0,6,4]]),new Set(["6,0"]),new Set(),500);
+const fis=E.solve(JSON.parse(JSON.stringify(fi))),fib=E.bill(fi,fis,{color:"weiss",maxM:3,mount:"direct"});
+ok(fis.ok&&fis.nodes.find(n=>n.type==="L").feedIn&&!fib.items.some(i=>/^feed[RL]$/.test(i.key))&&fib.checks[0].ok,"Einspeisung am L-Verbinder: kein Einspeiser nötig, Einspeisung erkannt");
+const ii=E.fromSegments(segsOf([[0,0,8,0]]),new Set(["4,0"]),new Set(),500);
+const iis=E.solve(JSON.parse(JSON.stringify(ii)));
+ok(iis.ok&&iis.nodes.some(n=>n.part==="jointFeed")&&ii.edges.length===2&&ii.edges[0].len===2000-60-6.5,"Einspeisung mitten in gerader Linie → I-Verbinder mit Einspeisemöglichkeit");
 process.exit(fail?1:0);
