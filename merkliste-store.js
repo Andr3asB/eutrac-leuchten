@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Andreas Bosch – Lichtplaner für EUTRAC, siehe LICENSE und NOTICE
 // Speicher für die Merkliste. Zwei Betriebsarten mit derselben kleinen API, die app.js nutzt
 // (doc().set/update/delete, collection().add/onSnapshot):
 //

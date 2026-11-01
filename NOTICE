@@ -1,0 +1,37 @@
+Lichtplaner für EUTRAC
+Copyright (C) 2026 Andreas Bosch
+https://github.com/Andr3asB/eutrac-leuchten · https://licht.16schwaben.de/
+
+Dieses Programm ist freie Software: Sie können es unter den Bedingungen der
+GNU Affero General Public License, Version 3 oder (nach Ihrer Wahl) jeder
+späteren Version, wie von der Free Software Foundation veröffentlicht,
+weitergeben und/oder ändern (SPDX: AGPL-3.0-or-later). Der vollständige
+Lizenztext steht in der Datei LICENSE.
+
+Dieses Programm wird in der Hoffnung bereitgestellt, dass es nützlich ist,
+aber OHNE JEDE GEWÄHRLEISTUNG – sogar ohne die implizite Gewährleistung der
+MARKTFÄHIGKEIT oder EIGNUNG FÜR EINEN BESTIMMTEN ZWECK.
+
+ZUSÄTZLICHE BEDINGUNG nach Abschnitt 7 b) der GNU AGPL (Namensnennung)
+-------------------------------------------------------------------
+Wer dieses Programm oder eine darauf beruhende Fassung weitergibt oder über
+ein Netzwerk zur Nutzung bereitstellt, muss in der Benutzeroberfläche – an
+gut sichtbarer Stelle, z. B. in der Fußzeile jeder Seite – folgenden
+Urheberhinweis erhalten:
+
+    Basiert auf „Lichtplaner für EUTRAC“ von Andreas Bosch
+    (https://github.com/Andr3asB/eutrac-leuchten)
+
+Der Hinweis darf an das eigene Design angepasst, aber nicht entfernt oder
+unkenntlich gemacht werden.
+
+Ausnahmen (eigene Lizenzen der Urheber)
+---------------------------------------
+- leuchten.json (Leuchtendaten): Creative Commons Namensnennung –
+  Weitergabe unter gleichen Bedingungen 4.0 International (CC BY-SA 4.0),
+  siehe LICENSE-DATA.md
+- fonts/: Archivo, SIL Open Font License 1.1, siehe fonts/LICENSE-Archivo.txt
+- vendor/supabase-*.js: supabase-js, MIT-Lizenz, siehe vendor/LICENSE-supabase-js.txt
+- Marken- und Produktnamen (EUTRAC, SLV, ERCO, Occhio, …) gehören ihren
+  Inhabern. Produktbilder sind nicht Teil dieses Projekts; sie werden nur
+  verlinkt und unterliegen den Rechten der jeweiligen Hersteller.

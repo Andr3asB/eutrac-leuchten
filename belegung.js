@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Andreas Bosch – Lichtplaner für EUTRAC, siehe LICENSE und NOTICE
 // Belegung: gemerkte Leuchten eines Raums auf den Schienenplan setzen, auf die drei Stromkreise verteilen
 // und KNX-Aktoren zuordnen. Gespeichert im Schienenplan-Eintrag der Merkliste (Felder platz und kreise).
 (function(){
@@ -26,7 +28,7 @@
 
   // ---------- Daten ----------
   async function loadLamps(){
-    try{const rows=await (await fetch("leuchten.json?v=20261101p",{cache:"no-cache"})).json();
+    try{const rows=await (await fetch("leuchten.json?v=20261101q",{cache:"no-cache"})).json();
       rows.forEach(r=>{r.key=r.key||(r.brand.replace(/\W/g,"")+"_"+r.art);byKey[r.key]=r})}catch(e){status("Leuchtendaten konnten nicht geladen werden.","bad")}
   }
   const status=(t,cls="")=>{const el=$("blStatus");el.textContent=t;el.className="fine"+(cls?" "+cls:"")};

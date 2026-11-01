@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Andreas Bosch – Lichtplaner für EUTRAC, siehe LICENSE und NOTICE
 // Teilen in der Kopfzeile jeder Seite: gemeinsame Liste anlegen, Link kopieren, zur lokalen Liste, löschen.
 // Jede Seite meldet sich mit ShareUI.mount({getDb, status, attach?, goLocal?, beforeSwitch?}) an.
 // Ohne attach/goLocal lädt die Seite nach dem Wechsel neu (Planer und Belegung).

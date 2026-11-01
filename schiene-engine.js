@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Andreas Bosch – Lichtplaner für EUTRAC, siehe LICENSE und NOTICE
 // Schienenplaner: Teiledaten und Rechenkern für die EUTRAC 3~ Aufbauschiene (5-Leiter, Typ 25-…)
 //
 // Quellen: EUTRAC Katalog 06/2022 (S. 61–65 Systemkomponenten, S. 88 Planungshinweise Schutzleiter,

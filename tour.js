@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Andreas Bosch – Lichtplaner für EUTRAC, siehe LICENSE und NOTICE
 // Kurze Einführungstouren je Bereich (Leuchten, Schienen, Belegung). Starten beim ersten Besuch des Bereichs
 // automatisch und lassen sich über „? Tour“ jederzeit erneut starten. Keine externen Bibliotheken.
 (function(){

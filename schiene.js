@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Andreas Bosch – Lichtplaner für EUTRAC, siehe LICENSE und NOTICE
 // Oberfläche des Schienenplaners: gerade Schiene (Länge eingeben) oder Form zeichnen. Rechnet mit schiene-engine.js.
 (function(){
   const E=window.SchienenEngine, $=id=>document.getElementById(id);

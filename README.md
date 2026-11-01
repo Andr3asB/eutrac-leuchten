@@ -51,3 +51,15 @@ Die Merkliste ist nur im eigenen Browser sichtbar. Damit die Cookies klein bleib
 ```bash
 python3 -m http.server
 ```
+
+
+## Lizenz
+
+Copyright (C) 2026 Andreas Bosch.
+
+- **Programm** (HTML, CSS, JavaScript, SQL): [GNU AGPL 3.0 oder später](LICENSE) (`AGPL-3.0-or-later`).
+  Wer eine geänderte Fassung weitergibt oder als Webdienst betreibt, muss deren Quellcode unter derselben Lizenz offenlegen.
+- **Zusatzbedingung nach Abschnitt 7 b) – Namensnennung:** In der Oberfläche muss sichtbar bleiben:
+  „Basiert auf ‚Lichtplaner für EUTRAC‘ von Andreas Bosch (https://github.com/Andr3asB/eutrac-leuchten)“. Details in [NOTICE](NOTICE).
+- **Leuchtendaten** (`leuchten.json`): [CC BY-SA 4.0](LICENSE-DATA.md).
+- Fremde Bestandteile mit eigener Lizenz: Schrift Archivo (SIL OFL 1.1, `fonts/`), supabase-js (MIT, `vendor/`).

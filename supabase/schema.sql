@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+-- Copyright (C) 2026 Andreas Bosch – Lichtplaner für EUTRAC
 -- Gemeinsame, Ende-zu-Ende-verschlüsselte Merklisten für „Leuchten für EUTRAC“.
 -- Einmalig im Supabase-Dashboard unter „SQL Editor“ ausführen.
 --

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Andreas Bosch – Lichtplaner für EUTRAC, siehe LICENSE und NOTICE
 // Zugang zur Supabase-Datenbank für gemeinsame Merklisten.
 // Beide Werte stehen im Supabase-Dashboard unter Project Settings → API.
 // Der „anon public“-Schlüssel ist für die Veröffentlichung gedacht; die Datenbank lässt damit nur

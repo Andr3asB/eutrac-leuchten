@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later · Copyright (C) 2026 Andreas Bosch */
 /* Leuchten für EUTRAC – Gestaltung „Lichtkegel“
    Ruhige Fläche in Beton und Graphit; die einzige Farbe ist die Lichtfarbe der Leuchten. */
 :root{
@@ -578,3 +579,6 @@ figure.failed img{display:none}
 .sharetoast.on{opacity:1;transform:translate(-50%,0)}
 @media (max-width:600px){.sharehdr{margin-left:auto}.sharehdr .badge{display:none}}
 @media print{.sharehdr,.sharetoast{display:none!important}}
+.sitefoot .credit{margin-left:auto;color:var(--schiefer);font-size:13px}
+.sitefoot .credit a{color:inherit}
+@media (max-width:600px){.sitefoot .credit{margin-left:0;flex-basis:100%}}

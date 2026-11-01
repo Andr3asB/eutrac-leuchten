@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Andreas Bosch – Lichtplaner für EUTRAC, siehe LICENSE und NOTICE
 // Prüft den Schienenplaner-Rechenkern gegen das Planungsbeispiel im EUTRAC-Katalog 06/2022, S. 88.
 // Aufruf: node tests/schiene-engine.test.js
 global.window={};require('../schiene-engine.js');const E=window.SchienenEngine;
