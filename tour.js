@@ -13,13 +13,14 @@
       {sel:"#viewTools .tools",title:"Sortieren und Tabelle",text:"Sortier nach Lumen, Preis oder Effizienz. Mit „Tabelle“ vergleichst du alle Werte Spalte für Spalte. Spalten, die bei allen Treffern gleich sind, treten zurück."},
       {sel:"#cards [data-pick]|#rows [data-pick]",title:"Merken",text:"Damit ordnest du eine Leuchte einem Raum, einer Verwendung und einer Stückzahl zu. Gibt es den Raum noch nicht, legst du ihn im selben Schritt an."},
       {sel:"#mlPanel|#mbar",title:"Lichtplan",text:"Hier sammeln sich je Raum die gemerkten Leuchten und die geplanten Schienen, mit Stückzahl und Gesamtsumme. Über „Drucken oder als PDF speichern“ entsteht eine Bestellliste für den Elektriker."},
-      {sel:"#shareBar button",title:"Gemeinsam bearbeiten",text:"Damit wird aus deinem Lichtplan eine gemeinsame Liste, die du per Link mit Familie oder Elektriker teilst – Leuchten, Schienen und Belegung. Auf Wunsch schützt ein Passwort die Liste."},
+      {sel:"#shareBar",title:"Teilen",text:"Oben auf jeder Seite: Damit wird aus deinem Lichtplan eine gemeinsame Liste, die du per Link mit Familie oder Elektriker teilst – Leuchten, Schienen und Belegung. Auf Wunsch schützt ein Passwort die Liste."},
       {sel:".notes",title:"Hinweise",text:"Hier steht, was „Abschnitt“ und „An-/Abschnitt“ bei der Dimmung bedeuten und woher die Daten stammen. Teste vor dem Kauf eine Leuchte am eigenen Dimmer oder KNX-Aktor."},
       {sel:"#tourBtn",title:"Fertig!",text:"Über „? Tour“ startest du diese Einführung jederzeit erneut. Weiter geht es im Reiter „Schienen“."}
     ],
     schienen:[
       {title:"Schienen planen",text:"Hier planst du die EUTRAC‑3‑Phasen‑Aufbauschiene und bekommst die Stückliste mit den richtigen Varianten für den Schutzleiter. Die Tour dauert etwa eine Minute."},
       {sel:".apptabs",title:"Bereiche umschalten",text:"Über die Reiter wechselst du zurück zu den Leuchten oder weiter zur Belegung."},
+      {sel:"#shareBar",title:"Teilen",text:"Über „Teilen …“ machst du den ganzen Lichtplan zur gemeinsamen Liste. Der Link führt direkt auf diese Seite."},
       {sel:"#saveBox",title:"Im Lichtplan speichern",text:"Wähle einen Raum (oder leg einen an), gib dem Plan einen Namen und speichere. Danach wird jede Änderung automatisch gespeichert, in einer gemeinsamen Liste auch für alle mit dem Link."},
       {sel:"[data-shape]",title:"Gerade oder gezeichnet",text:"Für eine einzelne gerade Schiene gibst du nur die Länge ein. Für L, T, U, H, X, Rahmen oder schräge Schienen wählst du „Form zeichnen“."},
       {sel:".edtools:not([hidden])",title:"Werkzeuge",text:"Schiene ziehen (waagrecht/senkrecht), Schräg ziehen, Einspeisung setzen, Flex-Ecke und Löschen. Dazu Raster, Fläche, Vorlagen und Rückgängig."},
@@ -36,6 +37,7 @@
       {sel:"#blLamps",title:"Leuchten setzen",text:"Tippe eine Leuchte an und dann auf die Schiene. Die Zahl zeigt, wie viele von den gemerkten schon sitzen. „Gleichmäßig verteilen“ setzt die übrigen in gleichen Abständen."},
       {sel:"#blSvg",title:"Leuchten auf der Schiene",text:"Gesetzte Leuchten kannst du verschieben. Ein Tipp auf eine Leuchte wählt sie aus: dann Stromkreis 1, 2 oder 3 wählen oder entfernen. Die Farbe zeigt den Stromkreis (L1 braun, L2 schwarz, L3 grau)."},
       {sel:"#blCircuits",title:"Stromkreise",text:"Jeder der drei Stromkreise bekommt einen Namen, Dimmen oder Schalten und einen Aktor-Kanal. Geprüft werden Last, Mindestlast, Dimmverfahren und gemischte Dimmarten."},
+      {sel:"#shareBar",title:"Teilen",text:"Über „Teilen …“ schickst du den Lichtplan samt Belegung per Link, z. B. an den Elektriker. Der Link öffnet direkt diese Seite."},
       {sel:"#blList",title:"Schaltliste",text:"Die Übersicht über alle Räume und Schienen: Stromkreis, Leuchten, Watt, Aktor und Kanal – zum Drucken für den Elektriker."},
       {sel:"#tourBtn",title:"Fertig!",text:"Über „? Tour“ startest du diese Einführung jederzeit erneut."}
     ]

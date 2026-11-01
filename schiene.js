@@ -384,6 +384,8 @@
     else db=S.openLocal();
     if(db.mode==="shared"&&$("saveStatus").textContent.endsWith("…"))setStatus("Gemeinsame Liste geöffnet. Gespeicherte Pläne sehen alle, die den Link haben.");
     if(db.mode==="shared"&&db.link){const h=new URL(db.link).hash;$("tabLamps").href="./"+h;$("tabRails").href="schiene.html"+h;$("tabPlace").href="belegung.html"+h}
+    if(window.ShareUI)ShareUI.mount({getDb:()=>db,status:t=>setStatus(t),
+      beforeSwitch:()=>cur||!(st.segs.size||st.diags.size)||confirm("Die Zeichnung ist noch keinem Raum zugeordnet und geht beim Wechsel der Liste verloren. Trotzdem fortfahren?")});
     if(db.mode==="local"&&!db.persistent)setStatus("Cookies sind blockiert: Pläne bleiben nur bis zum Neuladen erhalten.","bad");
     db.collection("raeume").onSnapshot(sn=>{rooms=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.pos||0)-(b.pos||0));renderSaveBox()});
     db.collection("schienen").onSnapshot(sn=>{plans=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.t||0)-(b.t||0));

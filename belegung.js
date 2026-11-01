@@ -26,7 +26,7 @@
 
   // ---------- Daten ----------
   async function loadLamps(){
-    try{const rows=await (await fetch("leuchten.json?v=20261101o",{cache:"no-cache"})).json();
+    try{const rows=await (await fetch("leuchten.json?v=20261101p",{cache:"no-cache"})).json();
       rows.forEach(r=>{r.key=r.key||(r.brand.replace(/\W/g,"")+"_"+r.art);byKey[r.key]=r})}catch(e){status("Leuchtendaten konnten nicht geladen werden.","bad")}
   }
   const status=(t,cls="")=>{const el=$("blStatus");el.textContent=t;el.className="fine"+(cls?" "+cls:"")};
@@ -268,6 +268,7 @@
       try{db=await S.openShared(link,askPassword);status("Gemeinsame Liste geöffnet.")}
       catch(e){db=S.openLocal();status("Die gemeinsame Liste konnte nicht geöffnet werden. Angezeigt wird die Merkliste dieses Browsers.","bad")}}
     else db=S.openLocal();
+    if(window.ShareUI)ShareUI.mount({getDb:()=>db,status:t=>status(t)});
     const h=shareHash();if(h){$("tabLamps").href="./"+h;$("tabRails").href="schiene.html"+h;$("tabPlace").href="belegung.html"+h}
     let got={r:0,a:0,s:0},first=true;
     const ready=()=>{if(!(got.r&&got.a&&got.s))return;

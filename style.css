@@ -562,3 +562,19 @@ figure.failed img{display:none}
 #blLegend .lf{display:inline-block;background:var(--ink);width:10px;height:10px;border-radius:2px}
 #blSel .chips button{display:inline-flex;align-items:center}
 #blSel .chips button[aria-checked=true],.chips button[aria-checked=true]{background:var(--ink);color:var(--karte);border-color:var(--ink)}
+
+/* Teilen in der Kopfzeile */
+.sharehdr{display:flex;align-items:center;gap:8px;margin-left:auto}
+.sharehdr .badge{white-space:nowrap}
+.sharehdr + .tourbtn,.appbar .sharehdr ~ .tourbtn{margin-left:0}
+.sharemore{position:relative}
+.sharemore summary{list-style:none;cursor:pointer;padding:8px 12px}
+.sharemore summary::-webkit-details-marker{display:none}
+.sharemenu{position:absolute;right:0;top:calc(100% + 6px);background:var(--karte);border:1px solid var(--linie);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.18);padding:6px;display:flex;flex-direction:column;min-width:240px;z-index:40}
+.sharemenu button{border:none;background:none;text-align:left;padding:10px 12px;border-radius:8px;font:inherit;color:var(--ink);cursor:pointer}
+.sharemenu button:hover{background:var(--putz)}
+.sharemenu .danger{color:var(--danger)}
+.sharetoast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,20px);background:var(--ink);color:var(--karte);padding:10px 16px;border-radius:12px;font-size:14px;max-width:min(560px,calc(100vw - 32px));opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:60}
+.sharetoast.on{opacity:1;transform:translate(-50%,0)}
+@media (max-width:600px){.sharehdr{margin-left:auto}.sharehdr .badge{display:none}}
+@media print{.sharehdr,.sharetoast{display:none!important}}

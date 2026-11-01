@@ -469,7 +469,7 @@ let unsub=[], notice="";
 const KNOWN=["too_large","conflict","forbidden","not_found","network","not_configured","offline"];
 function readyText(){
   if(db.mode==="shared")return "Gemeinsame Liste"+(db.hasPassword?" (mit Passwort)":"")+": Alle mit dem Link sehen Änderungen sofort. Die Daten werden im Browser verschlüsselt gespeichert.";
-  return db.persistent?"Gespeichert nur in diesem Browser, bis er geschlossen wird. Zum Aufheben oder Teilen: „Gemeinsam bearbeiten“."
+  return db.persistent?"Gespeichert nur in diesem Browser, bis er geschlossen wird. Zum Aufheben oder Teilen: „Teilen …“ oben rechts."
     :"Cookies sind blockiert: Die Merkliste funktioniert, geht aber beim Neuladen der Seite verloren.";
 }
 function attach(store){
@@ -485,50 +485,11 @@ function attach(store){
 }
 function goLocal(msg){S.leaveShared();history.replaceState(null,"",location.pathname+location.search);notice=msg||"";attach(S.openLocal())}
 
-const shareBar=document.getElementById("shareBar");
+// Teilen steht in der Kopfzeile (share-ui.js)
 function renderShareBar(){
   [["tabRails","schiene.html"],["tabPlace","belegung.html"]].forEach(([id,u])=>{const t=document.getElementById(id);if(t)t.href=u+shareHash()});
-  if(db&&db.mode==="shared"){
-    shareBar.innerHTML=`<span class="badge">Gemeinsam${db.hasPassword?" · 🔒":""}</span><button class="btn" type="button" data-share="copy">Link kopieren</button><button class="btn link" type="button" data-share="local">Zur lokalen Liste</button><button class="btn link" type="button" data-share="delete">Löschen</button>`;
-  }else{
-    shareBar.innerHTML=S.configured()?`<button class="btn" type="button" data-share="create">Gemeinsam bearbeiten …</button>`:"";
-  }
+  if(window.ShareUI)ShareUI.mount({getDb:()=>db,status,attach,goLocal});
 }
-async function copyText(t){try{await navigator.clipboard.writeText(t);return true}catch(e){return false}}
-shareBar.addEventListener("click",async e=>{
-  const b=e.target.closest("[data-share]");if(!b)return;const act=b.dataset.share;
-  if(act==="create")openShareDlg();
-  else if(act==="copy"){const ok=await copyText(db.link);status(ok?"Link kopiert. Wer ihn hat, kann die Liste ansehen und ändern"+(db.hasPassword?" – zusätzlich ist das Passwort nötig.":"."):"Link: "+db.link)}
-  else if(act==="local")goLocal("Lokale Merkliste. Die gemeinsame Liste bleibt über ihren Link erreichbar.");
-  else if(act==="delete"){if(!confirm("Gemeinsame Liste endgültig löschen? Alle mit dem Link verlieren den Zugriff."))return;
-    try{await db.destroy();goLocal("Gemeinsame Liste gelöscht.")}catch(err){status(KNOWN.includes(err.code)?err.message:"Löschen fehlgeschlagen.")}}
-});
-
-// Dialog: gemeinsame Liste anlegen
-const shareDlg=document.getElementById("shareDlg");
-function openShareDlg(){
-  ["sPw","sPw2"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("shareErr").hidden=true;document.getElementById("shareForm").hidden=false;document.getElementById("shareDone").hidden=true;
-  shareDlg.showModal();
-}
-document.getElementById("shareCancel").onclick=()=>shareDlg.close();
-document.getElementById("shareClose").onclick=()=>shareDlg.close();
-document.getElementById("shareForm").addEventListener("submit",async e=>{
-  e.preventDefault();const pw=document.getElementById("sPw").value,pw2=document.getElementById("sPw2").value,er=document.getElementById("shareErr");
-  if(pw!==pw2){er.hidden=false;er.textContent="Die Passwörter stimmen nicht überein.";return}
-  if(pw&&pw.length<6){er.hidden=false;er.textContent="Bitte mindestens 6 Zeichen verwenden oder das Feld leer lassen.";return}
-  const btn=document.getElementById("shareSave");btn.disabled=true;btn.textContent="Wird angelegt …";
-  try{
-    const res=await S.createShared(db._data(),pw);
-    history.replaceState(null,"",res.hash);
-    attach(await S.openShared(S.parseLink(res.hash),async()=>pw));
-    document.getElementById("shareLink").value=res.url;
-    document.getElementById("shareForm").hidden=true;document.getElementById("shareDone").hidden=false;
-    document.getElementById("sharePwNote").hidden=!pw;
-  }catch(err){er.hidden=false;er.textContent=KNOWN.includes(err.code)?err.message:"Anlegen fehlgeschlagen. Bitte erneut versuchen."}
-  finally{btn.disabled=false;btn.textContent="Link erstellen"}
-});
-document.getElementById("shareCopy").onclick=async()=>{const i=document.getElementById("shareLink");const ok=await copyText(i.value);if(!ok){i.select()}document.getElementById("shareCopy").textContent=ok?"Kopiert ✓":"Markiert – bitte kopieren"};
 
 // Dialog: Passwort abfragen
 const pwDlg=document.getElementById("pwDlg");
