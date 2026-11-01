@@ -487,7 +487,7 @@ function goLocal(msg){S.leaveShared();history.replaceState(null,"",location.path
 
 const shareBar=document.getElementById("shareBar");
 function renderShareBar(){
-  const tr=document.getElementById("tabRails");if(tr)tr.href="schiene.html"+shareHash();
+  [["tabRails","schiene.html"],["tabPlace","belegung.html"]].forEach(([id,u])=>{const t=document.getElementById(id);if(t)t.href=u+shareHash()});
   if(db&&db.mode==="shared"){
     shareBar.innerHTML=`<span class="badge">Gemeinsam${db.hasPassword?" · 🔒":""}</span><button class="btn" type="button" data-share="copy">Link kopieren</button><button class="btn link" type="button" data-share="local">Zur lokalen Liste</button><button class="btn link" type="button" data-share="delete">Löschen</button>`;
   }else{
@@ -551,16 +551,13 @@ async function start(){
   try{attach(await S.openShared(link,askPassword))}
   catch(err){goLocal((err.code==="cancelled"?"Ohne Passwort kann die gemeinsame Liste nicht geöffnet werden.":KNOWN.includes(err.code)||err.code==="bad_key"?err.message:"Die gemeinsame Liste konnte nicht geöffnet werden.")+" Angezeigt wird die lokale Merkliste.")}
 }
-// Einführungstour: beim ersten Besuch (noch keine Merkliste und Tour nicht gesehen) automatisch, sonst über „Tour“ in der Fußzeile
+// Einführungstour (tour.js): beim ersten Besuch automatisch, wenn noch keine Merkliste besteht; sonst über „? Tour“
 let tourChecked=false;
-const TOUR_PATH=location.pathname.replace(/[^/]*$/,"")||"/";
-const tourSeen=()=>/(?:^|;\s*)merkliste_(?:n|tour)=/.test(document.cookie);
-const markTourSeen=()=>{try{document.cookie="merkliste_tour=1; path="+TOUR_PATH+"; SameSite=Lax"+(location.protocol==="https:"?"; Secure":"")}catch(e){}};
-["tourLink","tourBtn"].forEach(id=>{const el=document.getElementById(id);if(el)el.onclick=()=>window.Tour&&window.Tour.start(markTourSeen)});
+["tourLink","tourBtn"].forEach(id=>{const el=document.getElementById(id);if(el)el.onclick=()=>window.Tour&&window.Tour.start()});
 function maybeTour(){
-  if(!window.Tour||tourSeen()||tourChecked)return; tourChecked=true;
-  const tryStart=()=>{if(document.querySelector("dialog[open]")){setTimeout(tryStart,800);return}window.Tour.start(markTourSeen)};
-  setTimeout(tryStart,600);
+  if(!window.Tour||tourChecked)return; tourChecked=true;
+  if(/(?:^|;\s*)merkliste_n=/.test(document.cookie))return;
+  window.Tour.auto();
 }
 window.addEventListener("hashchange",()=>{const l=S.parseLink(location.hash);if(l&&(!db||db.id!==l.id))start()});
 start();

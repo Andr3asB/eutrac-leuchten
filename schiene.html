@@ -9,10 +9,10 @@
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="theme-color" content="#262E3C">
-<link rel="stylesheet" href="fonts.css?v=20261101n">
-<link rel="stylesheet" href="style.css?v=20261101n">
+<link rel="stylesheet" href="fonts.css?v=20261101o">
+<link rel="stylesheet" href="style.css?v=20261101o">
 </head>
-<body class="planner">
+<body class="planner" data-tour="schienen">
 <a class="skiplink" href="#planOut">Zur Stückliste springen</a>
 <header class="top">
   <div class="appbar">
@@ -20,7 +20,9 @@
     <nav class="apptabs" aria-label="Planer">
       <a href="./" id="tabLamps">Leuchten</a>
       <a href="schiene.html" id="tabRails" aria-current="page">Schienen</a>
+      <a href="belegung.html" id="tabPlace">Belegung</a>
     </nav>
+    <button type="button" class="ghost tourbtn" id="tourBtn" aria-label="Einführungstour starten">? Tour</button>
   </div>
   <div class="topin">
     <div>
@@ -147,7 +149,7 @@
   </main>
 </div>
 
-<footer class="sitefoot"><a href="./">Leuchten auswählen</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
+<footer class="sitefoot"><button type="button" class="linkbtn" id="tourLink">Tour</button><a href="./">Leuchten auswählen</a><a href="belegung.html">Belegung</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
 
 <dialog id="pwDlg">
   <form id="pwForm">
@@ -159,10 +161,11 @@
   </form>
 </dialog>
 
-<script src="config.js?v=20261101n"></script>
-<script src="vendor/supabase-2.117.3.js?v=20261101n"></script>
-<script src="merkliste-store.js?v=20261101n"></script>
-<script src="schiene-engine.js?v=20261101n"></script>
-<script src="schiene.js?v=20261101n"></script>
+<script src="config.js?v=20261101o"></script>
+<script src="vendor/supabase-2.117.3.js?v=20261101o"></script>
+<script src="merkliste-store.js?v=20261101o"></script>
+<script src="tour.js?v=20261101o"></script>
+<script src="schiene-engine.js?v=20261101o"></script>
+<script src="schiene.js?v=20261101o"></script>
 </body>
 </html>

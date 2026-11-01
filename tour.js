@@ -1,19 +1,52 @@
-// Kurze Einführungstour. Startet automatisch beim ersten Besuch (noch keine Merkliste im Browser)
-// und lässt sich über „Tour“ in der Fußzeile jederzeit erneut starten. Keine externen Bibliotheken.
+// Kurze Einführungstouren je Bereich (Leuchten, Schienen, Belegung). Starten beim ersten Besuch des Bereichs
+// automatisch und lassen sich über „? Tour“ jederzeit erneut starten. Keine externen Bibliotheken.
 (function(){
-  const STEPS=[
-    {title:"Willkommen!",text:"Hier findest du phasendimmbare Leuchten für EUTRAC-3-Phasen-Schienen. Du kannst filtern, die Unterschiede vergleichen, pro Raum merken und die Liste teilen. Die Tour dauert etwa eine Minute."},
-    {sel:".filters|#filterBtn",title:"Filter",text:"Grenze die Auswahl ein, nach Lichtfarbe, Abstrahlwinkel, Dimmung, Hersteller, Gehäuse, Lumen und Watt."},
-    {sel:"#diffPanel",title:"Worin sich die Treffer unterscheiden",text:"Hier steht, worin sich die aktuellen Treffer noch unterscheiden, mit der Anzahl je Wert. Ein Klick auf einen Wert filtert danach. Was bei allen gleich ist, steht darunter."},
-    {sel:"#cards .specs|#tableBox",title:"Technische Daten",text:"Jede Leuchte zeigt alle technischen Daten. Werte, in denen sich die Treffer unterscheiden, sind fett und mit einem Balken markiert. So siehst du sofort, was zwei Leuchten trennt."},
-    {sel:"#cards .beam",title:"Lichtkegel",text:"Der Kegel ist im echten Abstrahlwinkel gezeichnet und in der Lichtfarbe eingefärbt: 2700 K bernstein, 4000 K fast weiß. Bei Zoom-Strahlern zeigt der hellere Bereich den größten Winkel."},
-    {sel:"#viewTools .tools",title:"Sortieren und Tabelle",text:"Sortier nach Lumen, Preis oder Effizienz. Mit „Tabelle“ vergleichst du alle Werte Spalte für Spalte. Spalten, die bei allen Treffern gleich sind, treten zurück."},
-    {sel:"#cards [data-pick]|#rows [data-pick]",title:"Merken",text:"Damit ordnest du eine Leuchte einem Raum, einer Verwendung und einer Stückzahl zu. Gibt es den Raum noch nicht, legst du ihn im selben Schritt an."},
-    {sel:"#mlPanel|#mbar",title:"Lichtplan",text:"Hier sammeln sich deine gemerkten Leuchten nach Raum und Verwendung, mit Stückzahl und Gesamtsumme. Über „Drucken oder als PDF speichern“ entsteht eine Bestellliste für den Elektriker."},
-    {sel:"#shareBar button",title:"Gemeinsam bearbeiten",text:"Damit wird aus deinem Lichtplan eine gemeinsame Liste, die du per Link mit Familie oder Elektriker teilst. Auf Wunsch schützt ein Passwort die Liste."},
-    {sel:".notes",title:"Hinweise",text:"Hier steht, was „Abschnitt“ und „An-/Abschnitt“ bei der Dimmung bedeuten und woher die Daten stammen. Teste vor dem Kauf eine Leuchte am eigenen Dimmer oder KNX-Aktor."},
-    {sel:"#tourBtn",title:"Fertig!",text:"Über „Tour“ oben rechts startest du die Einführung jederzeit erneut. Viel Erfolg bei der Planung!"}
-  ];
+  // Schritte je Seite (body[data-tour]); sel darf Alternativen enthalten („a|b“), fehlende Ziele werden übersprungen
+  const SETS={
+    leuchten:[
+      {title:"Willkommen!",text:"Der Lichtplaner hat drei Bereiche: Leuchten auswählen, Schienen planen und die Leuchten auf den Schienen belegen. Alles landet im selben Lichtplan je Raum. Diese Tour zeigt den Bereich „Leuchten“ und dauert etwa eine Minute."},
+      {sel:".apptabs",title:"Bereiche umschalten",text:"Über diese Reiter wechselst du zwischen „Leuchten“, „Schienen“ und „Belegung“. Jeder Bereich hat seine eigene kurze Tour über „? Tour“."},
+      {sel:".filters|#filterBtn",title:"Filter",text:"Grenze die Auswahl ein, nach Lichtfarbe, Abstrahlwinkel, Dimmung, Hersteller, Gehäuse, Lumen und Watt."},
+      {sel:"#diffPanel",title:"Worin sich die Treffer unterscheiden",text:"Hier steht, worin sich die aktuellen Treffer noch unterscheiden, mit der Anzahl je Wert. Ein Klick auf einen Wert filtert danach. Was bei allen gleich ist, steht darunter."},
+      {sel:"#cards .specs|#tableBox",title:"Technische Daten",text:"Jede Leuchte zeigt alle technischen Daten. Werte, in denen sich die Treffer unterscheiden, sind fett und mit einem Balken markiert. So siehst du sofort, was zwei Leuchten trennt."},
+      {sel:"#cards .beam",title:"Lichtkegel",text:"Der Kegel ist im echten Abstrahlwinkel gezeichnet und in der Lichtfarbe eingefärbt: 2700 K bernstein, 4000 K fast weiß. Bei Zoom-Strahlern zeigt der hellere Bereich den größten Winkel."},
+      {sel:"#viewTools .tools",title:"Sortieren und Tabelle",text:"Sortier nach Lumen, Preis oder Effizienz. Mit „Tabelle“ vergleichst du alle Werte Spalte für Spalte. Spalten, die bei allen Treffern gleich sind, treten zurück."},
+      {sel:"#cards [data-pick]|#rows [data-pick]",title:"Merken",text:"Damit ordnest du eine Leuchte einem Raum, einer Verwendung und einer Stückzahl zu. Gibt es den Raum noch nicht, legst du ihn im selben Schritt an."},
+      {sel:"#mlPanel|#mbar",title:"Lichtplan",text:"Hier sammeln sich je Raum die gemerkten Leuchten und die geplanten Schienen, mit Stückzahl und Gesamtsumme. Über „Drucken oder als PDF speichern“ entsteht eine Bestellliste für den Elektriker."},
+      {sel:"#shareBar button",title:"Gemeinsam bearbeiten",text:"Damit wird aus deinem Lichtplan eine gemeinsame Liste, die du per Link mit Familie oder Elektriker teilst – Leuchten, Schienen und Belegung. Auf Wunsch schützt ein Passwort die Liste."},
+      {sel:".notes",title:"Hinweise",text:"Hier steht, was „Abschnitt“ und „An-/Abschnitt“ bei der Dimmung bedeuten und woher die Daten stammen. Teste vor dem Kauf eine Leuchte am eigenen Dimmer oder KNX-Aktor."},
+      {sel:"#tourBtn",title:"Fertig!",text:"Über „? Tour“ startest du diese Einführung jederzeit erneut. Weiter geht es im Reiter „Schienen“."}
+    ],
+    schienen:[
+      {title:"Schienen planen",text:"Hier planst du die EUTRAC‑3‑Phasen‑Aufbauschiene und bekommst die Stückliste mit den richtigen Varianten für den Schutzleiter. Die Tour dauert etwa eine Minute."},
+      {sel:".apptabs",title:"Bereiche umschalten",text:"Über die Reiter wechselst du zurück zu den Leuchten oder weiter zur Belegung."},
+      {sel:"#saveBox",title:"Im Lichtplan speichern",text:"Wähle einen Raum (oder leg einen an), gib dem Plan einen Namen und speichere. Danach wird jede Änderung automatisch gespeichert, in einer gemeinsamen Liste auch für alle mit dem Link."},
+      {sel:"[data-shape]",title:"Gerade oder gezeichnet",text:"Für eine einzelne gerade Schiene gibst du nur die Länge ein. Für L, T, U, H, X, Rahmen oder schräge Schienen wählst du „Form zeichnen“."},
+      {sel:".edtools:not([hidden])",title:"Werkzeuge",text:"Schiene ziehen (waagrecht/senkrecht), Schräg ziehen, Einspeisung setzen, Flex-Ecke und Löschen. Dazu Raster, Fläche, Vorlagen und Rückgängig."},
+      {sel:"#svgBox",title:"Grundriss",text:"Hier zeichnest du mit Maus oder Finger. Verbinder und Endkappen setzt der Planer selbst. Die rote Linie zeigt die Lage des Schutzleiters, an jedem Verbinder steht die passende Ausführung."},
+      {sel:"[data-view]",title:"Von oben oder von unten",text:"Der Katalog zeigt den Grundriss von oben. „Von unten“ zeigt die Schiene so, wie du sie an der Decke siehst."},
+      {sel:"#checks",title:"Prüfung",text:"Hier steht, ob Einspeisung, Abschlüsse und Schutzleiter passen. Widersprüche werden in der Zeichnung rot markiert, mit Vorschlag zur Abhilfe."},
+      {sel:"#bom",title:"Stückliste",text:"Alle Teile mit EUTRAC- und SLV-Nummer. Hake an, was du schon hast; darunter steht, was noch fehlt."},
+      {sel:"#tabRails",title:"Fertig!",text:"Über „? Tour“ startest du diese Einführung jederzeit erneut. Im Reiter „Belegung“ setzt du anschließend die Leuchten auf die Schiene."}
+    ],
+    belegung:[
+      {title:"Belegung und Stromkreise",text:"Hier setzt du die gemerkten Leuchten eines Raums auf die geplante Schiene, verteilst sie auf die drei Stromkreise und ordnest jedem Kreis einen Kanal am KNX-Aktor zu."},
+      {sel:".apptabs",title:"Bereiche umschalten",text:"Leuchten und Schienen planst du in den anderen beiden Reitern; hier kommen beide zusammen."},
+      {sel:"#blPick",title:"Raum und Schiene",text:"Wähle den Raum und den Schienenplan, den du belegen willst."},
+      {sel:"#blLamps",title:"Leuchten setzen",text:"Tippe eine Leuchte an und dann auf die Schiene. Die Zahl zeigt, wie viele von den gemerkten schon sitzen. „Gleichmäßig verteilen“ setzt die übrigen in gleichen Abständen."},
+      {sel:"#blSvg",title:"Leuchten auf der Schiene",text:"Gesetzte Leuchten kannst du verschieben. Ein Tipp auf eine Leuchte wählt sie aus: dann Stromkreis 1, 2 oder 3 wählen oder entfernen. Die Farbe zeigt den Stromkreis (L1 braun, L2 schwarz, L3 grau)."},
+      {sel:"#blCircuits",title:"Stromkreise",text:"Jeder der drei Stromkreise bekommt einen Namen, Dimmen oder Schalten und einen Aktor-Kanal. Geprüft werden Last, Mindestlast, Dimmverfahren und gemischte Dimmarten."},
+      {sel:"#blList",title:"Schaltliste",text:"Die Übersicht über alle Räume und Schienen: Stromkreis, Leuchten, Watt, Aktor und Kanal – zum Drucken für den Elektriker."},
+      {sel:"#tourBtn",title:"Fertig!",text:"Über „? Tour“ startest du diese Einführung jederzeit erneut."}
+    ]
+  };
+  const PAGE=document.body.dataset.tour||"leuchten", KEY={leuchten:"l",schienen:"s",belegung:"b"}[PAGE]||"l";
+  // Gesehene Touren im Sitzungs-Cookie „merkliste_tour“ (z. B. „lsb“); alter Wert „1“ = Leuchten-Tour gesehen
+  const TPATH=location.pathname.replace(/[^/]*$/,"")||"/";
+  const seenStr=()=>{const m=/(?:^|;\s*)merkliste_tour=([^;]*)/.exec(document.cookie);return m?m[1].replace("1","l"):""};
+  const seen=()=>seenStr().includes(KEY);
+  const markSeen=()=>{try{const v=[...new Set((seenStr()+KEY).split(""))].join("");document.cookie="merkliste_tour="+v+"; path="+TPATH+"; SameSite=Lax"+(location.protocol==="https:"?"; Secure":"")}catch(e){}};
+  const STEPS=SETS[PAGE];
   const visible=el=>{if(!el)return false;const r=el.getBoundingClientRect();if(!(r.width>0&&r.height>0)||getComputedStyle(el).visibility==="hidden")return false;
     // Elemente in ausgeblendeten Schubladen (fest positioniert, aus dem Bild geschoben) zählen nicht
     const box=el.closest(".plan,.filters");if(box&&getComputedStyle(box).position==="fixed"){const b=box.getBoundingClientRect();if(b.top>=innerHeight||b.left>=innerWidth||b.bottom<=0||b.right<=0)return false}
@@ -78,11 +111,13 @@
     onDone&&onDone();
   }
   function start(done){
-    if(root)return; onDone=done||null; prevFocus=document.activeElement;
+    if(root)return; onDone=()=>{markSeen();done&&done()}; prevFocus=document.activeElement;
     steps=STEPS.map(s=>({...s,el:find(s.sel)})).filter(s=>!s.sel||s.el);
     build();document.documentElement.classList.add("touring");
     addEventListener("resize",place);addEventListener("scroll",place,true);document.addEventListener("keydown",onKey,true);
     go(0);
   }
-  window.Tour={start,isOpen:()=>!!root};
+  // Automatisch beim ersten Besuch der Seite (wartet, bis kein Dialog offen ist)
+  function auto(){if(seen())return;const t=()=>{if(document.querySelector("dialog[open]")){setTimeout(t,800);return}start()};setTimeout(t,700)}
+  window.Tour={start,auto,seen,isOpen:()=>!!root};
 })();

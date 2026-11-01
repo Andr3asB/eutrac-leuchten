@@ -383,7 +383,7 @@
       catch(e){db=S.openLocal();setStatus("Die gemeinsame Liste konnte nicht geöffnet werden. Gespeichert wird in der Merkliste dieses Browsers.","bad")}}
     else db=S.openLocal();
     if(db.mode==="shared"&&$("saveStatus").textContent.endsWith("…"))setStatus("Gemeinsame Liste geöffnet. Gespeicherte Pläne sehen alle, die den Link haben.");
-    if(db.mode==="shared"&&db.link){const h=new URL(db.link).hash;$("tabLamps").href="./"+h;$("tabRails").href="schiene.html"+h}
+    if(db.mode==="shared"&&db.link){const h=new URL(db.link).hash;$("tabLamps").href="./"+h;$("tabRails").href="schiene.html"+h;$("tabPlace").href="belegung.html"+h}
     if(db.mode==="local"&&!db.persistent)setStatus("Cookies sind blockiert: Pläne bleiben nur bis zum Neuladen erhalten.","bad");
     db.collection("raeume").onSnapshot(sn=>{rooms=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.pos||0)-(b.pos||0));renderSaveBox()});
     db.collection("schienen").onSnapshot(sn=>{plans=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.t||0)-(b.t||0));
@@ -420,4 +420,6 @@
   let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(st.shape==="draw")render()},150)});
   render();
   openStore();
+  ["tourBtn","tourLink"].forEach(id=>{const el=$(id);if(el)el.onclick=()=>window.Tour&&window.Tour.start()});
+  if(window.Tour)window.Tour.auto();
 })();

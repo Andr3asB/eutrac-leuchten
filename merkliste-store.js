@@ -24,12 +24,12 @@
   function readCookies(){const all={};document.cookie.split(/;\s*/).forEach(p=>{const i=p.indexOf("=");if(i>0)all[p.slice(0,i)]=p.slice(i+1)});return all}
   function setCookie(k,v){document.cookie=k+"="+v+"; path="+PATH+"; SameSite=Lax"+SECURE}
   function delCookie(k){document.cookie=k+"=; path="+PATH+"; max-age=0; SameSite=Lax"+SECURE}
-  // Kompaktes Format: {r:[[name,[gruppen]]…], z:[[leuchte,raumIndex,gruppe,stueck]…], s:[[raumIndex,name,plan]…]} (s = Schienenpläne)
+  // Kompaktes Format: {r:[[name,[gruppen]]…], z:[[leuchte,raumIndex,gruppe,stueck]…], s:[[raumIndex,name,plan,id,kreise,platz]…]} (s = Schienenpläne mit Belegung)
   function pack(data){
     const ids=Object.entries(data.raeume).sort((a,b)=>(a[1].pos||0)-(b[1].pos||0));
     const idx=Object.fromEntries(ids.map(([id],i)=>[id,i]));
     const z=Object.values(data.zuordnung).filter(a=>a.raum in idx).sort((a,b)=>(a.t||0)-(b.t||0)).map(a=>[a.leuchte,idx[a.raum],a.gruppe||"",a.stueck]);
-    const sp=Object.entries(data.schienen||{}).filter(([,a])=>a.raum in idx).sort((a,b)=>(a[1].t||0)-(b[1].t||0)).map(([id,a])=>[idx[a.raum],a.name||"",a.plan||{},id]);
+    const sp=Object.entries(data.schienen||{}).filter(([,a])=>a.raum in idx).sort((a,b)=>(a[1].t||0)-(b[1].t||0)).map(([id,a])=>{const r=[idx[a.raum],a.name||"",a.plan||{},id];if(a.kreise||a.platz)r.push(a.kreise||0,a.platz||0);return r});
     // Raum-IDs mitspeichern, damit Links wie schiene.html?raum=… nach dem Neuladen gültig bleiben
     const out={r:ids.map(([id,v])=>[v.name,v.gruppen||[],id]),z};if(sp.length)out.s=sp;return out;
   }
@@ -38,7 +38,7 @@
     const rid=(p.r||[]).map(([,,id],i)=>id||"r"+i);
     (p.r||[]).forEach(([name,gruppen],i)=>data.raeume[rid[i]]={name,gruppen,pos:i});
     (p.z||[]).forEach(([leuchte,ri,gruppe,stueck],i)=>data.zuordnung["z"+i]={leuchte,raum:rid[ri],gruppe,stueck,t:i});
-    (p.s||[]).forEach(([ri,name,plan,id],i)=>data.schienen[id||"s"+i]={raum:rid[ri],name,plan,t:i});
+    (p.s||[]).forEach(([ri,name,plan,id,kreise,platz],i)=>{const d={raum:rid[ri],name,plan,t:i};if(kreise)d.kreise=kreise;if(platz)d.platz=platz;data.schienen[id||"s"+i]=d});
     return data;
   }
   const toB64=str=>b64u(enc.encode(str)), fromB64=s=>dec.decode(unb64u(s));

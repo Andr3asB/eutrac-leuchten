@@ -22,10 +22,10 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <meta name="theme-color" content="#262E3C">
-<link rel="stylesheet" href="fonts.css?v=20261101n">
-<link rel="stylesheet" href="style.css?v=20261101n">
+<link rel="stylesheet" href="fonts.css?v=20261101o">
+<link rel="stylesheet" href="style.css?v=20261101o">
 </head>
-<body>
+<body data-tour="leuchten">
 <a class="skiplink" href="#leuchten">Zur Leuchtenliste springen</a>
 <header class="top">
   <div class="appbar">
@@ -33,6 +33,7 @@
     <nav class="apptabs" aria-label="Planer">
       <a href="./" id="tabLamps" aria-current="page">Leuchten</a>
       <a href="schiene.html" id="tabRails">Schienen</a>
+      <a href="belegung.html" id="tabPlace">Belegung</a>
     </nav>
     <button type="button" class="ghost tourbtn" id="tourBtn" aria-label="Einführungstour starten">? Tour</button>
   </div>
@@ -135,7 +136,7 @@
 
 <section class="printplan" id="printPlan" aria-hidden="true"></section>
 
-<footer class="sitefoot"><button type="button" class="linkbtn" id="tourLink">Tour</button><a href="schiene.html">Schienen planen</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
+<footer class="sitefoot"><button type="button" class="linkbtn" id="tourLink">Tour</button><a href="schiene.html">Schienen planen</a><a href="belegung.html">Belegung</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
 
 <dialog id="imgDlg" class="imgdlg" aria-labelledby="imgCap">
   <figure class="loading">
@@ -194,11 +195,11 @@
   </form>
 </dialog>
 
-<script src="config.js?v=20261101n"></script>
-<script src="vendor/supabase-2.117.3.js?v=20261101n"></script>
-<script src="merkliste-store.js?v=20261101n"></script>
-<script src="schiene-engine.js?v=20261101n"></script>
-<script src="tour.js?v=20261101n"></script>
-<script src="app.js?v=20261101n"></script>
+<script src="config.js?v=20261101o"></script>
+<script src="vendor/supabase-2.117.3.js?v=20261101o"></script>
+<script src="merkliste-store.js?v=20261101o"></script>
+<script src="schiene-engine.js?v=20261101o"></script>
+<script src="tour.js?v=20261101o"></script>
+<script src="app.js?v=20261101o"></script>
 </body>
 </html>

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Belegung – Lichtplaner für EUTRAC</title>
+<meta name="description" content="Leuchten auf der EUTRAC-Schiene platzieren, auf die drei Stromkreise verteilen und KNX-Dimm- oder Schaltaktoren zuordnen – mit Last- und Dimmprüfung und Schaltliste.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#262E3C">
+<link rel="stylesheet" href="fonts.css?v=20261101o">
+<link rel="stylesheet" href="style.css?v=20261101o">
+</head>
+<body class="placing" data-tour="belegung">
+<a class="skiplink" href="#blMain">Zur Belegung springen</a>
+<header class="top">
+  <div class="appbar">
+    <a class="brand" href="./">Lichtplaner <span>für EUTRAC‑3‑Phasen‑Schienen</span></a>
+    <nav class="apptabs" aria-label="Planer">
+      <a href="./" id="tabLamps">Leuchten</a>
+      <a href="schiene.html" id="tabRails">Schienen</a>
+      <a href="belegung.html" id="tabPlace" aria-current="page">Belegung</a>
+    </nav>
+    <button type="button" class="ghost tourbtn" id="tourBtn" aria-label="Einführungstour starten">? Tour</button>
+  </div>
+  <div class="topin">
+    <div>
+      <h1>Belegung und Stromkreise</h1>
+      <p class="lead">Setz die gemerkten Leuchten eines Raums auf die geplante Schiene, verteil sie auf die drei Stromkreise (L1, L2, L3 – am Adapter einstellbar) und ordne jedem Kreis einen Kanal am KNX-Dimm- oder Schaltaktor zu. Der Planer prüft Last, Mindestlast und Dimmverfahren.</p>
+    </div>
+  </div>
+</header>
+
+<div class="bl-layout">
+  <div class="bl-pick" id="blPick">
+    <label class="inl">Raum <select id="blRoom"></select></label>
+    <label class="inl">Schiene <select id="blPlan"></select></label>
+    <span class="fine" id="blStatus" aria-live="polite"></span>
+  </div>
+
+  <aside class="bl-side" aria-label="Leuchten im Raum">
+    <section class="bl-card" id="blLamps"></section>
+    <section class="bl-card" id="blSel" hidden></section>
+  </aside>
+
+  <main class="bl-main" id="blMain" tabindex="-1">
+    <section class="bl-card">
+      <div class="drawhead"><h2>Leuchten auf der Schiene</h2><span class="fine" id="blHint"></span></div>
+      <div class="svgbox" id="blSvgBox"></div>
+      <p class="fine" id="blLegend"></p>
+    </section>
+    <section class="bl-circuits" id="blCircuits" aria-label="Stromkreise"></section>
+  </main>
+
+  <section class="bl-card bl-list" id="blList" aria-labelledby="blListH">
+    <div class="drawhead"><h2 id="blListH">Schaltliste</h2><button type="button" class="ghost" id="blPrint">Drucken oder als PDF</button></div>
+    <div id="blListBody"></div>
+    <p class="fine">Lasten aus den Datenblättern der Leuchten; bei „je Leuchtmittel“ zählt die Watt-Angabe des eingesetzten Leuchtmittels. Grenzwerte der Aktoren laut Herstellerangaben – vor der Installation im aktuellen Datenblatt prüfen. Anschluss nur durch eine Elektrofachkraft.</p>
+  </section>
+</div>
+
+<footer class="sitefoot"><button type="button" class="linkbtn" id="tourLink">Tour</button><a href="./">Leuchten auswählen</a><a href="schiene.html">Schienen planen</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
+
+<dialog id="pwDlg">
+  <form id="pwForm">
+    <h3>Passwort für die gemeinsame Liste</h3>
+    <p>Diese Merkliste ist mit einem Passwort geschützt.</p>
+    <div class="f"><label for="pwInput">Passwort</label><input type="password" id="pwInput" autocomplete="current-password"></div>
+    <p id="pwErr" class="err" hidden>Passwort falsch. Bitte erneut versuchen.</p>
+    <div class="actions"><button class="btn" type="button" id="pwCancel">Abbrechen</button><button class="btn primary" type="submit">Öffnen</button></div>
+  </form>
+</dialog>
+
+<script src="config.js?v=20261101o"></script>
+<script src="vendor/supabase-2.117.3.js?v=20261101o"></script>
+<script src="merkliste-store.js?v=20261101o"></script>
+<script src="tour.js?v=20261101o"></script>
+<script src="schiene-engine.js?v=20261101o"></script>
+<script src="belegung.js?v=20261101o"></script>
+</body>
+</html>
