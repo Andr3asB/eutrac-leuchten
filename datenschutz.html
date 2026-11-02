@@ -10,8 +10,8 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <meta name="theme-color" content="#262E3C">
-<link rel="stylesheet" href="fonts.css?v=20261101q">
-<link rel="stylesheet" href="style.css?v=20261101q">
+<link rel="stylesheet" href="fonts.css?v=20261102d">
+<link rel="stylesheet" href="style.css?v=20261102d">
 </head>
 <body>
 <div class="wrap legal">
@@ -49,7 +49,7 @@
 
   <section>
     <h2>4. Speicherung im Browser (Cookies und Sitzungsspeicher)</h2>
-    <p>Die Seite speichert nur, was für die von Ihnen genutzten Funktionen nötig ist. Es gibt keine Analyse-, Marketing- oder Drittanbieter-Cookies. Alle Einträge sind <strong>Sitzungsdaten</strong>: Sie haben kein Ablaufdatum und werden gelöscht, wenn Sie den Browser bzw. den Tab schließen.</p>
+    <p>Die Seite speichert nur, was für die von Ihnen genutzten Funktionen nötig ist. Es gibt keine Analyse-, Marketing- oder Drittanbieter-Cookies. Fast alle Einträge sind <strong>Sitzungsdaten</strong>: Sie haben kein Ablaufdatum und werden gelöscht, wenn Sie den Browser bzw. den Tab schließen. Einzige Ausnahme ist die Einstellung „Hilfetexte ausblenden“, die nur gespeichert wird, wenn Sie sie selbst wählen.</p>
     <table class="store">
       <thead><tr><th>Name</th><th>Art</th><th>Zweck</th><th>Dauer</th></tr></thead>
       <tbody>
@@ -57,11 +57,12 @@
         <tr><td data-label="Name"><code>merkliste_tour</code></td><td data-label="Art">Cookie</td><td data-label="Zweck">merkt sich, welche Einführungstouren (Leuchten, Schienen, Belegung) bereits gezeigt wurden</td><td data-label="Dauer">bis zum Schließen des Browsers</td></tr>
         <tr><td data-label="Name"><code>merkliste_test</code></td><td data-label="Art">Cookie</td><td data-label="Zweck">prüft einmalig, ob Cookies erlaubt sind; wird sofort wieder gelöscht</td><td data-label="Dauer">Sekundenbruchteil</td></tr>
         <tr><td data-label="Name"><code>ml_key_…</code></td><td data-label="Art">Sitzungsspeicher</td><td data-label="Zweck">aus Link und Passwort abgeleiteter Schlüssel einer geöffneten gemeinsamen Liste, damit das Passwort beim Neuladen nicht erneut nötig ist</td><td data-label="Dauer">bis zum Schließen des Tabs</td></tr>
+        <tr><td data-label="Name"><code>lp_hilfe</code></td><td data-label="Art">lokaler Speicher</td><td data-label="Zweck">merkt sich, dass Sie die Hilfetexte ausgeblendet haben (nur nach Klick auf „Hilfetexte ausblenden“; wird gelöscht, wenn Sie sie wieder einblenden)</td><td data-label="Dauer">bis Sie die Hilfetexte wieder einblenden oder die Websitedaten löschen</td></tr>
         <tr><td data-label="Name"><code>ml_shared</code></td><td data-label="Art">Sitzungsspeicher</td><td data-label="Zweck">Link zur zuletzt geöffneten gemeinsamen Liste in diesem Tab</td><td data-label="Dauer">bis zum Schließen des Tabs</td></tr>
       </tbody>
     </table>
     <p>Cookies werden vom Browser bei jedem Seitenaufruf an den Server (GitHub Pages, siehe Abschnitt 3) mitgesendet. Deshalb liegen Schlüssel und Links gemeinsamer Listen bewusst <em>nicht</em> in Cookies, sondern im Sitzungsspeicher, der nie übertragen wird.</p>
-    <p><strong>Rechtsgrundlage:</strong> Die Speicherung ist für die von Ihnen ausdrücklich gewünschten Funktionen (Merkliste, gemeinsame Liste, Einführung) unbedingt erforderlich und erfolgt daher ohne Einwilligung nach § 25 Abs. 2 Nr. 2 TDDDG. Die weitere Verarbeitung stützt sich auf Art. 6 Abs. 1 lit. f DSGVO. Eine Einwilligungsabfrage („Cookie-Banner“) ist deshalb nicht erforderlich.</p>
+    <p><strong>Rechtsgrundlage:</strong> Die Speicherung ist für die von Ihnen ausdrücklich gewünschten Funktionen (Merkliste, gemeinsame Liste, Einführung) unbedingt erforderlich und erfolgt daher ohne Einwilligung nach § 25 Abs. 2 Nr. 2 TDDDG. Das gilt auch für die von Ihnen gewählte Ansichtseinstellung (<code>lp_hilfe</code>). Die weitere Verarbeitung stützt sich auf Art. 6 Abs. 1 lit. f DSGVO. Eine Einwilligungsabfrage („Cookie-Banner“) ist deshalb nicht erforderlich.</p>
     <p>Sie können Cookies und Sitzungsspeicher jederzeit in Ihrem Browser löschen oder blockieren. Die Leuchtenliste funktioniert dann weiter; die Merkliste geht beim Neuladen verloren.</p>
   </section>
 

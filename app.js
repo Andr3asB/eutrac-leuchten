@@ -220,6 +220,7 @@ function tableRowHtml(r,u,dis){
 const COL_ATTR={type:"type",cctSort:"cct",aMin:"angle",color:"color",w:"w",lm:"lm",lmw:"lmw",cri:"cri",dim:"dim",ugr:"ugr",dims:"dims",price:"price"};
 
 function render(){
+  if(typeof syncQuick==="function")syncQuick();
   const {list,usedBy,only,onlyRoom}=filtered();
   const an=analyse(list), dis=writable()?"":" disabled";
   const nf=activeFilterCount();
@@ -261,6 +262,15 @@ function activeFilterCount(){
   Object.values(RANGES).forEach(r=>{if(r.active())n++}); if(+document.getElementById("minCri").value)n++; if(document.getElementById("onlyPicked").value!=="all")n++;
   return n;
 }
+// Vergleichsfeld: für Einsteiger zugeklappt, in der Kompaktansicht offen
+{const dp=document.getElementById("diffPanel");if(window.Guide&&Guide.isPro())dp.open=true;document.addEventListener("lp:pro",e=>{dp.open=e.detail})}
+// Schnellstart für Einsteiger: setzt passende Filter (ersetzt die Auswahl in den betroffenen Gruppen)
+const QUICK={room:{angle:["breit"]},accent:{angle:["eng"]},work:{angle:["mittel"],cct:[3000,4000]},table:{type:["Pendel"]},cozy:{cct:[2700]}};
+const quickOn=k=>Object.entries(QUICK[k]).every(([f,v])=>state[f].size===v.length&&v.every(x=>state[f].has(x)));
+function syncQuick(){document.querySelectorAll("[data-quick]").forEach(b=>b.setAttribute("aria-pressed",quickOn(b.dataset.quick)))}
+document.getElementById("quickChips").addEventListener("click",e=>{const b=e.target.closest("[data-quick]");if(!b)return;const q=QUICK[b.dataset.quick],on=quickOn(b.dataset.quick);
+  Object.entries(q).forEach(([f,v])=>{state[f].clear();if(!on)v.forEach(x=>state[f].add(x))});syncChips();render();
+  if(!on)document.getElementById("count").scrollIntoView({block:"start",behavior:"smooth"})});
 document.getElementById("sortSel").addEventListener("change",e=>{const [k,d]=e.target.value.split(":");state.sort=k;state.dir=+d;render()});
 document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{state.view=b.dataset.view;document.querySelectorAll("[data-view]").forEach(x=>x.setAttribute("aria-pressed",x===b));render()});
 document.getElementById("cards").addEventListener("click",e=>{
@@ -341,6 +351,7 @@ document.getElementById("printBtn").onclick=()=>{buildPrint();window.print()};
 window.addEventListener("beforeprint",buildPrint);
 function renderRooms(){
   updatePlanSummary();
+  if(window.Guide)Guide.update({rooms,assigns,rails,hash:shareHash()});
   const el=document.getElementById("rooms");
   if(el.contains(document.activeElement)&&document.activeElement.tagName==="INPUT")return; // nicht beim Tippen neu zeichnen
   if(!rooms.length){el.innerHTML=`<div class="empty">Noch keine Räume. Klick bei einer Leuchte auf „Merken“, dann legst du den Raum im selben Schritt an. Oder leg ihn oben direkt an.</div>`;return}

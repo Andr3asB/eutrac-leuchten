@@ -10,6 +10,7 @@ Filterbare Übersicht über Leuchten für EUTRAC-3-Phasen-Stromschienen (SLV, De
 | `style.css` | Gestaltung |
 | `leuchten.json` | **Leuchtendaten** – eine Leuchte pro Zeile; hier ergänzen/ändern. `model` ist der angezeigte Name, `modelOrig` (falls vorhanden) die Originalbezeichnung im Shop |
 | `app.js` | Filter, Tabelle, Merkliste |
+| `guide.js` | Einsteigerführung: Fortschritt an den Reitern, „Nächster Schritt“, Hilfetexte ein/aus (siehe docs/ux-flow-2026-11-02.md) |
 | `belegung.html`, `belegung.js` | Belegung: Leuchten eines Raums auf die Schiene setzen, auf Stromkreis L1–L3 verteilen, KNX-Dimm-/Schaltaktor und Kanal zuordnen (MDT AKD-0401.02, AKS-2016.03 oder eigene Werte), Last- und Dimmprüfung, Schaltliste |
 | `schiene.html`, `schiene.js`, `schiene-engine.js` | Schienenplaner: Stückliste für die EUTRAC 3~ Aufbauschiene mit Schutzleiter-Logik – gerade Schiene per Länge oder beliebige Form auf dem Raster zeichnen (L, T, U, H, 8, X, Rahmen; Vorlagen, Rückgängig, Ansicht von unten). Pläne lassen sich einem Raum der Merkliste zuordnen (lokal im Cookie oder in der gemeinsamen, verschlüsselten Liste) und erscheinen im Lichtplan und im Druck. Tests: `node tests/schiene-engine.test.js` |
 | `tour.js` | Einführungstour (beim ersten Besuch automatisch, sonst über „Tour“ in der Fußzeile) |

@@ -3,7 +3,8 @@
 // Oberfläche des Schienenplaners: gerade Schiene (Länge eingeben) oder Form zeichnen. Rechnet mit schiene-engine.js.
 (function(){
   const E=window.SchienenEngine, $=id=>document.getElementById(id);
-  const st={shape:"straight",feed:"left",side:"S",view:"top",have:{},tool:"draw",
+  const st={mode:"simple",sshape:"gerade",shape:"straight",feed:"left",side:"S",view:"top",have:{},tool:"draw",
+    dims:{},sfeed:{},sArea:[6,4],
     segs:new Set(),diags:new Set(),flex:new Set(),feeds:new Set(),mids:new Set(),undo:[]};
   const fmtM=mm=>(mm/1000).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2})+" m";
   const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -14,7 +15,7 @@
   function radio(sel,attr,cb){document.querySelectorAll(sel).forEach(b=>b.addEventListener("click",()=>{if(b.disabled)return;
     document.querySelectorAll(sel).forEach(x=>x.setAttribute("aria-checked",x===b));cb(b.dataset[attr]);render()}))}
   radio("[data-feed]","feed",v=>{st.feed=v;applyHave()});
-  radio("[data-shape]","shape",v=>{st.shape=v;if(v==="draw"&&!st.segs.size)loadPreset("H mit X statt Mittelsteg")});
+  radio("[data-mode]","mode",v=>setMode(v));
   document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{st.view=b.dataset.view;document.querySelectorAll("[data-view]").forEach(x=>x.setAttribute("aria-pressed",x===b));render()});
   document.querySelectorAll("[data-tool]").forEach(b=>b.onclick=()=>{st.tool=b.dataset.tool;document.querySelectorAll("[data-tool]").forEach(x=>x.setAttribute("aria-pressed",x===b));render()});
   ["len","maxLen","color","mount","spacing"].forEach(id=>$(id).addEventListener("input",render));
@@ -34,6 +35,83 @@
   }
   const snapshot=()=>{st.undo.push({segs:[...st.segs],diags:[...st.diags],flex:[...st.flex],feeds:[...st.feeds],mids:[...st.mids]});if(st.undo.length>60)st.undo.shift()};
   const restore=s=>{st.segs=new Set(s.segs);st.diags=new Set(s.diags||[]);st.flex=new Set(s.flex||[]);st.feeds=new Set(s.feeds);st.mids=new Set(s.mids)};
+
+  // ---------- Einfacher Modus: Form wählen, Maße eintragen ----------
+  // Maße in mm; Linien als [x0,y0,x1,y1]; Einspeiseoptionen: p = Punkt (Ende oder Verbinder), m = Mitteneinspeiser auf dieser Linie
+  const SHAPES={
+    gerade:{name:"Gerade",icon:[[2,8,22,8]]},
+    L:{name:"L-Form",dims:[["A","Länge oben (waagrecht)",3],["B","Länge rechts (senkrecht)",2]],icon:[[3,3,21,3],[21,3,21,14]],
+      lines:(A,B)=>[[0,0,A,0],[A,0,A,B]],feeds:(A,B)=>[["e1","am linken Ende",{p:[0,0]}],["e2","am unteren Ende",{p:[A,B]}],["c","an der Ecke",{p:[A,0]}],["m","irgendwo auf der langen Seite",{m:A>=B?[0,0,A,0]:[A,0,A,B]}]]},
+    U:{name:"U-Form",dims:[["A","Breite",3],["B","Länge der Seiten",1.5]],icon:[[3,14,3,3],[3,3,21,3],[21,3,21,14]],
+      lines:(A,B)=>[[0,B,0,0],[0,0,A,0],[A,0,A,B]],feeds:(A,B)=>[["e1","am linken Ende",{p:[0,B]}],["e2","am rechten Ende",{p:[A,B]}],["m","irgendwo in der Mitte",{m:[0,0,A,0]}]]},
+    T:{name:"T-Form",dims:[["A","Länge oben (durchgehend)",4],["B","Länge des Abzweigs",2]],icon:[[2,3,22,3],[12,3,12,14]],
+      lines:(A,B)=>[[0,0,A,0],[A/2,0,A/2,B]],feeds:(A,B)=>[["e1","am linken Ende",{p:[0,0]}],["e3","am Ende des Abzweigs",{p:[A/2,B]}],["n","am Abzweig (T-Verbinder)",{p:[A/2,0]}]]},
+    rect:{name:"Rechteck",dims:[["A","Breite",4],["B","Tiefe",3]],icon:[[3,3,21,3],[21,3,21,14],[21,14,3,14],[3,14,3,3]],
+      lines:(A,B)=>[[0,0,A,0],[A,0,A,B],[A,B,0,B],[0,B,0,0]],feeds:(A,B)=>[["m","irgendwo auf einer Seite",{m:[0,0,A,0]}],["c","an einer Ecke",{p:[0,0]}]]},
+    plus:{name:"Kreuz",dims:[["A","Länge waagrecht",3],["B","Länge senkrecht",3]],icon:[[2,8.5,22,8.5],[12,2,12,15]],
+      lines:(A,B)=>[[0,B/2,A,B/2],[A/2,0,A/2,B]],feeds:(A,B)=>[["e1","am linken Ende",{p:[0,B/2]}],["e2","am oberen Ende",{p:[A/2,0]}],["n","in der Mitte (X-Verbinder)",{p:[A/2,B/2]}]]},
+    H:{name:"H-Form",dims:[["A","Abstand der Seiten",3],["B","Länge der Seiten",3]],icon:[[3,2,3,15],[21,2,21,15],[3,8.5,21,8.5]],
+      lines:(A,B)=>[[0,0,0,B],[A,0,A,B],[0,B/2,A,B/2]],feeds:(A,B)=>[["e1","oben links",{p:[0,0]}],["m","in der Mitte des Querstegs",{m:[0,B/2,A,B/2]}]]}
+  };
+  Object.entries(SHAPES).forEach(([k,v])=>{if(v.dims){st.dims[k]={};v.dims.forEach(([d,,def])=>st.dims[k][d]=String(def).replace(".",","))}});
+  const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);
+  function renderShapeCards(){
+    $("shapeCards").innerHTML=Object.entries(SHAPES).map(([k,v])=>`<button type="button" role="radio" aria-checked="${st.sshape===k}" data-sshape="${k}" class="shapecard">
+      <svg viewBox="0 0 24 17" aria-hidden="true">${v.icon.map(([a,b,c,d])=>`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}"/>`).join("")}</svg><span>${v.name}</span></button>`).join("");
+  }
+  function renderDimFields(){
+    const S=SHAPES[st.sshape];if(!S.dims){$("dimFields").innerHTML="";$("sfeedChips").innerHTML="";return}
+    $("dimFields").innerHTML=S.dims.map(([d,label])=>`<div class="f"><label for="dim${d}">${label}</label><div class="unit"><input type="text" id="dim${d}" data-dim="${d}" value="${esc(st.dims[st.sshape][d])}" inputmode="decimal" autocomplete="off"><span>m</span></div></div>`).join("");
+    const opts=S.feeds(1,1);if(!opts.some(o=>o[0]===st.sfeed[st.sshape]))st.sfeed[st.sshape]=opts[0][0];
+    $("sfeedChips").innerHTML=opts.map(([k,l])=>`<button type="button" role="radio" aria-checked="${st.sfeed[st.sshape]===k}" data-sfeed="${k}">${l}</button>`).join("");
+  }
+  $("shapeCards").addEventListener("click",e=>{const b=e.target.closest("[data-sshape]");if(!b)return;st.sshape=b.dataset.sshape;st.simpleTouched=true;
+    renderShapeCards();renderDimFields();render()});
+  $("dimFields").addEventListener("input",e=>{const d=e.target.dataset.dim;if(!d)return;st.dims[st.sshape][d]=e.target.value;st.simpleTouched=true;render()});
+  $("sfeedChips").addEventListener("click",e=>{const b=e.target.closest("[data-sfeed]");if(!b)return;st.sfeed[st.sshape]=b.dataset.sfeed;st.simpleTouched=true;
+    $("sfeedChips").querySelectorAll("[data-sfeed]").forEach(x=>x.setAttribute("aria-checked",x===b));render()});
+  // Baut die Form aus den Maßen: Rasterschritt = größter gemeinsamer Teiler aller Koordinaten (mm)
+  function buildSimple(){
+    const S=SHAPES[st.sshape],d=st.dims[st.sshape];
+    const A=Math.round((num(d.A)||0)*100)*10,B=Math.round((num(d.B)||0)*100)*10;
+    if(A<300||B<300)return "Bitte alle Maße ab 0,30 m eingeben.";
+    if(A>30000||B>30000)return "Bitte Maße bis 30 m eingeben.";
+    const lines=S.lines(A,B),f=(S.feeds(A,B).find(o=>o[0]===st.sfeed[st.sshape])||S.feeds(A,B)[0])[2];
+    let g=0;lines.flat().forEach(v=>g=gcd(g,Math.round(v)));if(f.p)f.p.forEach(v=>g=gcd(g,v));g=Math.max(g,5);
+    st.segs=new Set();st.diags=new Set();st.flex=new Set();st.feeds=new Set();st.mids=new Set();st.autoFeed=null;
+    lines.forEach(([a,b,c,e])=>addLine(a/g,b/g,c/g,e/g));
+    if(f.p)st.feeds.add(f.p[0]/g+","+f.p[1]/g);
+    if(f.m){const [a,b,c,e]=f.m.map(v=>v/g);if(b===e){const x=Math.min(Math.floor((a+c)/2),Math.max(a,c)-1);st.mids.add(`${x},${b},h`)}else{const y=Math.min(Math.floor((b+e)/2),Math.max(b,e)-1);st.mids.add(`${a},${y},v`)}}
+    st.step=g;const xs=lines.flatMap(l=>[l[0],l[2]]),ys=lines.flatMap(l=>[l[1],l[3]]);
+    st.sArea=[Math.max(...xs)/1000+0.4,Math.max(...ys)/1000+0.4];st.simple={s:st.sshape,A,B,f:st.sfeed[st.sshape]};
+    return null;
+  }
+  // Moduswechsel. Einfach → frei: die aktuelle Form wird übernommen (die vorige Zeichnung bleibt über „Rückgängig“ erreichbar).
+  function setMode(m){
+    if(m===st.mode)return;
+    if(m==="draw"){
+      const prev=st.drawStash;
+      if(prev&&!st.simpleTouched){restore(prev);st.step=prev.step;$("gridStep").value=String(prev.step)}
+      else{if(prev)st.undo.push(prev);toDrawFromSimple()}
+    }else{st.drawStash={segs:[...st.segs],diags:[...st.diags],flex:[...st.flex],feeds:[...st.feeds],mids:[...st.mids],step:st.step};st.simpleTouched=false}
+    st.mode=m;document.querySelectorAll("[data-mode]").forEach(x=>x.setAttribute("aria-checked",x.dataset.mode===m));
+  }
+  function toDrawFromSimple(){
+    if(st.sshape==="gerade"){const L=Math.round((num($("len").value)||3)*100)*10;st.sshape="L";const keep=st.dims;
+      st.segs=new Set();st.diags=new Set();st.flex=new Set();st.feeds=new Set();st.mids=new Set();
+      const g=Math.max(gcd(L,1000),5);addLine(0,0,L/g,0);if(st.feed==="left")st.feeds.add("0,0");else if(st.feed==="right")st.feeds.add(L/g+",0");else st.mids.add(Math.floor(L/g/2)+",0,h");
+      st.step=g;st.sArea=[L/1000+0.4,1];st.sshape="gerade";st.dims=keep}
+    else buildSimple();
+    // Zum Weiterzeichnen ein handliches Raster (50/25/10 cm), wenn die Form darauf passt
+    {const d=[500,250,100].find(x=>st.step%x===0);if(d&&d<st.step){const f=st.step/d,seg=new Set();
+      for(const u of st.segs){const [x,y,o]=u.split(",");for(let i=0;i<f;i++)seg.add(o==="h"?`${+x*f+i},${+y*f},h`:`${+x*f},${+y*f+i},v`)}
+      st.segs=seg;st.feeds=new Set([...st.feeds].map(q=>q.split(",").map(v=>+v*f).join(",")));
+      st.mids=new Set([...st.mids].map(q=>{const [x,y,o]=q.split(",");return `${+x*f+(o==="h"?Math.floor(f/2):0)},${+y*f+(o==="v"?Math.floor(f/2):0)},${o}`}));st.step=d}}
+    // Raster des Zeichenmodus: vorhandene Stufe nehmen oder die nötige ergänzen
+    const sel=$("gridStep");if(![...sel.options].some(o=>+o.value===st.step)){const o=document.createElement("option");o.value=String(st.step);o.textContent=(st.step/10).toLocaleString("de-DE")+" cm";sel.appendChild(o)}
+    sel.value=String(st.step);$("areaW").value=String(Math.ceil(st.sArea[0]+0.6));$("areaH").value=String(Math.ceil(st.sArea[1]+0.6));
+  }
+  $("toDraw").onclick=()=>{setMode("draw");render();$("svgBox").scrollIntoView({block:"nearest"})};
 
   // ---------- Vorlagen (Maße in Metern, Linien als [x0,y0,x1,y1]) ----------
   const PRESETS={
@@ -96,10 +174,12 @@
   // ---------- Hauptberechnung ----------
   function render(){renderCore();scheduleSave()}
   function renderCore(){
-    const draw=st.shape==="draw";
-    document.querySelectorAll(".straightonly").forEach(el=>el.hidden=draw);
-    document.querySelectorAll(".drawonly").forEach(el=>el.hidden=!draw);
-    $("shapeHint").textContent=draw?"Ziehe Schienen auf dem Raster (Maus oder Finger). Verbinder, Endkappen und Varianten setzt der Planer automatisch.":"Für eine einzelne gerade Schiene. Für L, T, U, H, X, Rahmen und andere Formen: „Form zeichnen“.";
+    st.shape=st.mode==="draw"?"draw":st.sshape==="gerade"?"straight":"simple";
+    const draw=st.shape!=="straight", simple=st.shape==="simple";
+    document.querySelectorAll(".simpleonly").forEach(el=>el.hidden=st.mode!=="simple");
+    document.querySelectorAll(".straightonly").forEach(el=>el.hidden=st.shape!=="straight");
+    document.querySelectorAll(".shapeonly").forEach(el=>el.hidden=!simple);
+    document.querySelectorAll(".drawonly").forEach(el=>el.hidden=st.shape!=="draw");
     $("spacingRow").hidden=!/^(rod|rope)/.test($("mount").value);
     $("haveFeedRow").hidden=$("sideRow").hidden=st.feed==="mid";
     const err=$("errors");err.innerHTML="";
@@ -112,7 +192,8 @@
       if(!solved.ok){err.innerHTML=solved.errors.map(e=>`<p class="err">${esc(e)}</p>`).join("");clearOut();return}
       outputs(layout,solved,opts);drawStraight(solved,len);
     }else{
-      st.step=+$("gridStep").value;
+      if(simple){const e=buildSimple();if(e){drawGrid(null,null);clearOut();err.innerHTML=`<p class="err">${esc(e)}</p>`;return}}
+      else st.step=+$("gridStep").value;
       $("toolHint").textContent={draw:"Auf einen Rasterpunkt drücken und waagrecht oder senkrecht ziehen. Wo Schienen sich treffen, entstehen automatisch L-, T- oder X-Verbinder.",
         diag:"Von einem Rasterpunkt zu einem beliebigen anderen ziehen. Schräge Schienen werden über Flex-Verbinder (30° bis 330°) angeschlossen; die setzt der Planer automatisch.",
         flex:"Auf eine rechtwinklige Ecke tippen: Flex-Verbinder statt L-Verbinder (und zurück).",
@@ -130,7 +211,7 @@
       outputs(layout,solved,opts,short);drawGrid(layout,solved);edgeList(solved);
     }
   }
-  function clearOut(){$("checks").innerHTML="";$("bom").querySelector("tbody").innerHTML="";$("missing").innerHTML="";$("notes").innerHTML="";if(st.shape==="draw")$("edgeList").innerHTML=""}
+  function clearOut(){$("checks").innerHTML="";$("bom").querySelector("tbody").innerHTML="";$("missing").innerHTML="";$("notes").innerHTML="";if(st.shape!=="straight")$("edgeList").innerHTML=""}
 
   function outputs(layout,solved,opts,short=[]){
     const b=E.bill(layout,solved,opts);
@@ -142,7 +223,7 @@
       <td class="mono">${esc(it.eutrac)}</td><td class="mono">${it.slv?esc(it.slv):'<span class="na">nicht bei SLV</span>'}</td></tr>`).join("");
     const miss=b.items.filter(it=>!st.have[it.key]);
     $("missing").innerHTML=Object.keys(st.have).some(k=>st.have[k])?(miss.length?`<b>Es fehlen noch:</b> ${miss.map(it=>`${it.qty}× ${esc(it.name)}`).join(", ")}`:`<b>Vollständig.</b> Du hast alle Teile beisammen.`):"";
-    const ded=st.shape==="draw"?[`Zuschnitt: Gezeichnet wird die Achse. Die Schienenlänge ergibt sich abzüglich Platzbedarf der Verbinder laut Katalog (L, T, X je 6 cm ab Mitte, Einspeiser 7,2 cm, Endkappe 0,65 cm).`]:[];
+    const ded=st.shape!=="straight"?[`Zuschnitt: Gezeichnet wird die Achse. Die Schienenlänge ergibt sich abzüglich Platzbedarf der Verbinder laut Katalog (L, T, X je 6 cm ab Mitte, Einspeiser 7,2 cm, Endkappe 0,65 cm).`]:[];
     if(solved.hasFlex)ded.push("Flex-Verbinder: Baulänge laut Katalog 80 bis 120 mm je nach Winkel; gerechnet ist mit 6 cm je Seite. Bei spitzen Winkeln wird er kürzer – schräge Schienen vor dem Zuschnitt am Bau nachmessen.");
     $("notes").innerHTML=[...ded,...b.notes,"Anschluss: 3 Stromkreise, je Stromkreis bis 3.600 W; am Drehstromnetz Einzelabsicherung 3 × 16 A, Zuleitung 5 × 1,5 mm² bis 5 × 2,5 mm². Anschluss nur durch eine Elektrofachkraft."].map(n=>`<li>${esc(n)}</li>`).join("");
   }
@@ -178,18 +259,18 @@
   // ---------- Zeichnung: Editor ----------
   let G=null; // aktuelle Geometrie für die Zeigerauswertung
   function drawGrid(layout,solved){
-    const step=st.step, aw=Math.max(1,num($("areaW").value)||6), ah=Math.max(1,num($("areaH").value)||4);
+    const ro=st.shape==="simple", step=st.step, aw=ro?st.sArea[0]:Math.max(1,num($("areaW").value)||6), ah=ro?st.sArea[1]:Math.max(1,num($("areaH").value)||4);
     const cols=Math.round(aw*1000/step), rows=Math.round(ah*1000/step);
-    const pad=34, avail=Math.min(900,($("svgBox").clientWidth||900)-pad*2), cw=Math.max(8,Math.min(60,Math.floor(avail/cols))), W=cols*cw+pad*2, H=rows*cw+pad*2, flip=st.view==="below";
+    const pad=34, avail=Math.min(900,($("svgBox").clientWidth||900)-pad*2), cw=Math.max(0.2,Math.min(ro?120:60,ro?avail/cols:Math.floor(avail/cols)||avail/cols)), W=cols*cw+pad*2, H=rows*cw+pad*2, flip=st.view==="below";
     const PX=gx=>flip?W-(pad+gx*cw):pad+gx*cw, PY=gy=>pad+gy*cw;
     G={cw,pad,W,H,cols,rows,flip};
-    let s=`<svg viewBox="0 0 ${W} ${H}" id="edSvg" class="editor tool-${st.tool}" role="application" aria-label="Zeichenfläche für die Schienenform, Raster ${fmtM(step)}">`;
+    let s=ro?`<svg viewBox="0 0 ${W} ${H}" id="edSvg" class="editor ro" role="img" aria-label="Grundriss der Schiene">`:`<svg viewBox="0 0 ${W} ${H}" id="edSvg" class="editor tool-${st.tool}" role="application" aria-label="Zeichenfläche für die Schienenform, Raster ${fmtM(step)}">`;
     s+=`<rect x="0" y="0" width="${W}" height="${H}" class="edbg"/>`;
     // Raster: Linien je Meter, Punkte je Rasterschritt
     const perM=1000/step;
-    for(let i=0;i<=cols;i++){const x=PX(i);if(i%perM===0){s+=`<line x1="${x}" y1="${PY(0)}" x2="${x}" y2="${PY(rows)}" class="gm"/><text x="${x}" y="${PY(rows)+20}" text-anchor="middle" class="tG">${i/perM} m</text>`}}
-    for(let j=0;j<=rows;j++){const y=PY(j);if(j%perM===0){s+=`<line x1="${Math.min(PX(0),PX(cols))}" y1="${y}" x2="${Math.max(PX(0),PX(cols))}" y2="${y}" class="gm"/><text x="${flip?W-pad+8:pad-8}" y="${y+4}" text-anchor="${flip?"start":"end"}" class="tG">${j/perM}</text>`}}
-    if(cw>=10){for(let i=0;i<=cols;i++)for(let j=0;j<=rows;j++)s+=`<circle cx="${PX(i)}" cy="${PY(j)}" r="1.2" class="gd"/>`}
+    for(let m=0;m*perM<=cols+1e-9;m++){const x=PX(m*perM);s+=`<line x1="${x}" y1="${PY(0)}" x2="${x}" y2="${PY(rows)}" class="gm"/><text x="${x}" y="${PY(rows)+20}" text-anchor="middle" class="tG">${m} m</text>`}
+    for(let m=0;m*perM<=rows+1e-9;m++){const y=PY(m*perM);s+=`<line x1="${Math.min(PX(0),PX(cols))}" y1="${y}" x2="${Math.max(PX(0),PX(cols))}" y2="${y}" class="gm"/><text x="${flip?W-pad+8:pad-8}" y="${y+4}" text-anchor="${flip?"start":"end"}" class="tG">${m}</text>`}
+    if(cw>=10&&!ro){for(let i=0;i<=cols;i++)for(let j=0;j<=rows;j++)s+=`<circle cx="${PX(i)}" cy="${PY(j)}" r="1.2" class="gd"/>`}
     // Schienen (Ketten zwischen Knoten), Schutzleiter
     if(layout){
       const sideByUnit={}; if(solved&&solved.edges)solved.edges.forEach(e=>e.units&&e.units.forEach(u=>sideByUnit[u]=e.sl));
@@ -223,7 +304,7 @@
     s+=`<line id="edPrev" x1="0" y1="0" x2="0" y2="0" class="edprev" visibility="hidden"/></svg>`;
     $("svgBox").innerHTML=s;
     $("drawNote").innerHTML=`<span class="leg"><i class="lr"></i>Schiene</span><span class="leg"><i class="ls"></i>Schutzleiter</span><span class="leg"><i class="lf"></i>Einspeiser</span><span class="leg"><i class="le"></i>Endkappe</span><span class="leg"><i class="lx"></i>Flex-Verbinder</span>`+(st.view==="below"?" Ansicht von unten (gespiegelt); die Teilenamen bleiben die des Katalogs.":"");
-    bindEditor();
+    if(!ro)bindEditor();
   }
   function short(v,t){if(t==="feed")return "SL "+v;if(t==="L"||t==="flex")return v;return v.replace("innen, ","innen ").replace("außen, ","außen ").replace("rechts","re").replace("links","li")}
 
@@ -297,13 +378,14 @@
 
   // ---------- Speichern im Lichtplan (Merkliste: lokal im Browser oder gemeinsame Liste per Link) ----------
   const S=window.MerklisteStore, qs=new URLSearchParams(location.search);
-  let db=null, rooms=[], plans=[], cur=null, lastSaved="", saveT=null, initDone=false, applying=false, wantRoom=qs.get("raum")||"";
+  let db=null, rooms=[], plans=[], assigns=[], cur=null, lastSaved="", saveT=null, initDone=false, applying=false, wantRoom=qs.get("raum")||"";
   const setStatus=(t,cls="")=>{const el=$("saveStatus");el.textContent=t;el.className="fine"+(cls?" "+cls:"")};
   const where=()=>db&&db.mode==="shared"?"in der gemeinsamen Liste":"in der Merkliste dieses Browsers";
   function toPlan(){
     const o={maxLen:$("maxLen").value,color:$("color").value,mount:$("mount").value,spacing:$("spacing").value};
     const hv=Object.keys(st.have).filter(k=>st.have[k]);
-    if(st.shape!=="draw")return {m:"s",len:Math.round((num($("len").value)||0)*1000),feed:st.feed,side:st.side,o,hv};
+    if(st.shape==="straight")return {m:"s",len:Math.round((num($("len").value)||0)*1000),feed:st.feed,side:st.side,o,hv};
+    if(st.shape==="simple"){buildSimple();return {m:"d",st:st.step,l:E.segsToLines(st.segs,st.diags),fx:[],fd:[...st.feeds].map(p=>p.split(",").map(Number)),md:[...st.mids],a:st.sArea,simple:st.simple,o,hv}}
     return {m:"d",st:+$("gridStep").value,l:E.segsToLines(st.segs,st.diags),fx:[...st.flex].map(p=>p.split(",").map(Number)),
       fd:[...st.feeds].map(p=>p.split(",").map(Number)),md:[...st.mids],a:[num($("areaW").value)||6,num($("areaH").value)||4],o,hv};
   }
@@ -312,11 +394,13 @@
     applying=true;
     const o=p.o||{};["maxLen","color","mount","spacing"].forEach(k=>{if(o[k]!=null)$(k).value=String(o[k])});
     st.have={};(p.hv||[]).forEach(k=>st.have[k]=true);
-    st.shape=p.m==="s"?"straight":"draw";
-    document.querySelectorAll("[data-shape]").forEach(x=>x.setAttribute("aria-checked",x.dataset.shape===st.shape));
+    st.mode=p.m==="s"||p.simple?"simple":"draw";st.drawStash=null;
+    if(p.m==="s")st.sshape="gerade";
+    if(p.simple&&SHAPES[p.simple.s]){st.sshape=p.simple.s;st.dims[st.sshape]={A:String(p.simple.A/1000).replace(".",","),B:String(p.simple.B/1000).replace(".",",")};st.sfeed[st.sshape]=p.simple.f}
+    document.querySelectorAll("[data-mode]").forEach(x=>x.setAttribute("aria-checked",x.dataset.mode===st.mode));renderShapeCards();renderDimFields();
     if(p.m==="s"){$("len").value=String((p.len||3000)/1000).replace(".",",");st.feed=p.feed||"left";st.side=p.side||"S";$("haveFeed").value="";
       document.querySelectorAll("[data-feed]").forEach(x=>x.setAttribute("aria-checked",x.dataset.feed===st.feed))}
-    else{const g=E.planSegs(p);st.segs=g.segs;st.diags=g.diags;st.flex=g.flex;st.feeds=g.feeds;st.mids=g.mids;st.step=p.st||500;$("gridStep").value=String(st.step);
+    else if(!p.simple){const g=E.planSegs(p);st.segs=g.segs;st.diags=g.diags;st.flex=g.flex;st.feeds=g.feeds;st.mids=g.mids;st.step=p.st||500;$("gridStep").value=String(st.step);
       if(p.a){$("areaW").value=String(p.a[0]).replace(".",",");$("areaH").value=String(p.a[1]).replace(".",",")}}
     st.undo=[];st.autoFeed=null;applying=false;
   }
@@ -389,18 +473,20 @@
     if(window.ShareUI)ShareUI.mount({getDb:()=>db,status:t=>setStatus(t),
       beforeSwitch:()=>cur||!(st.segs.size||st.diags.size)||confirm("Die Zeichnung ist noch keinem Raum zugeordnet und geht beim Wechsel der Liste verloren. Trotzdem fortfahren?")});
     if(db.mode==="local"&&!db.persistent)setStatus("Cookies sind blockiert: Pläne bleiben nur bis zum Neuladen erhalten.","bad");
-    db.collection("raeume").onSnapshot(sn=>{rooms=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.pos||0)-(b.pos||0));renderSaveBox()});
+    const guide=()=>{if(window.Guide)Guide.update({rooms,assigns,rails:plans,hash:db.mode==="shared"&&db.link?new URL(db.link).hash:""})};
+    db.collection("raeume").onSnapshot(sn=>{rooms=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.pos||0)-(b.pos||0));renderSaveBox();guide()});
+    db.collection("zuordnung").onSnapshot(sn=>{assigns=sn.docs.map(d=>({id:d.id,...d.data()})).filter(a=>a.leuchte&&a.raum);guide()});
     db.collection("schienen").onSnapshot(sn=>{plans=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.t||0)-(b.t||0));
       if(!initDone){initDone=true;const id=qs.get("plan");
         if(id&&!openPlan(id))setStatus("Dieser Schienenplan ist in der geöffneten Merkliste nicht (mehr) vorhanden.","bad");
         else if(!id&&wantRoom){const n=plans.filter(p=>p.raum===wantRoom).length+1;$("planName").value="Schiene "+n;
-          st.shape="draw";document.querySelectorAll("[data-shape]").forEach(x=>x.setAttribute("aria-checked",x.dataset.shape==="draw"));renderCore()}}
+          renderCore()}}
       else if(cur){const p=plans.find(x=>x.id===cur);
         if(!p){cur=null;lastSaved="";history.replaceState(null,"",location.pathname+location.hash);setStatus("Dieser Plan wurde inzwischen gelöscht. Die Zeichnung bleibt hier, ist aber nicht mehr gespeichert.","bad")}
         else{const k=JSON.stringify([p.plan,p.name,p.raum]);
           if(k!==lastSaved&&!saveT){applyPlan(p.plan||{});$("planName").value=p.name||"Schiene";wantRoom=p.raum;renderSaveBox();lastSaved=keyNow();renderCore();
             setStatus("Von jemand anderem geändert – Ansicht aktualisiert.","ok")}}}
-      renderSaveBox()});
+      renderSaveBox();guide()});
     if(db.onRemoteChange)db.onRemoteChange(e=>{if(e&&e.code==="not_found")setStatus("Die gemeinsame Liste wurde gelöscht.","bad")});
   }
   // Schräge Linien an Rasterpunkten teilen, an denen andere Schienen enden oder kreuzen → dort entsteht ein Verbinder
@@ -421,7 +507,8 @@
     }
   }
   function layoutNow(step){return E.fromSegments(st.segs,st.feeds,st.mids,step,{diags:st.diags,flex:st.flex})}
-  let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(st.shape==="draw")render()},150)});
+  let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(st.shape!=="straight")render()},150)});
+  renderShapeCards();renderDimFields();
   render();
   openStore();
   ["tourBtn","tourLink"].forEach(id=>{const el=$(id);if(el)el.onclick=()=>window.Tour&&window.Tour.start()});

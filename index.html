@@ -22,8 +22,8 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <meta name="theme-color" content="#262E3C">
-<link rel="stylesheet" href="fonts.css?v=20261101q">
-<link rel="stylesheet" href="style.css?v=20261101q">
+<link rel="stylesheet" href="fonts.css?v=20261102d">
+<link rel="stylesheet" href="style.css?v=20261102d">
 </head>
 <body data-tour="leuchten">
 <a class="skiplink" href="#leuchten">Zur Leuchtenliste springen</a>
@@ -41,7 +41,7 @@
   <div class="topin">
     <div>
       <h1>Leuchten auswählen</h1>
-      <p class="lead">Phasendimmbare Strahler und Pendel für EUTRAC‑3‑Phasen‑Schienen: SLV ohne DALI, dazu Deko‑Light, ERCO, ISOLED, Molto Luce, Occhio und Paulmann. Filtern, die Unterschiede vergleichen, pro Raum merken und mit Familie oder Elektriker teilen. Die Schienen dazu planst du im Reiter „Schienen“ – beides landet im selben Lichtplan. Stand: 31.10.2026.</p>
+      <p class="lead help">Such dir dimmbare Strahler und Pendelleuchten für die EUTRAC‑3‑Phasen‑Schiene aus – von SLV, Deko‑Light, ERCO, ISOLED, Molto Luce, Occhio und Paulmann – und merk sie dir für deine Räume. Danach planst du im Reiter „Schienen“ die passende Schiene und setzt die Leuchten im Reiter „Belegung“ darauf. Stand der Daten: 31.10.2026.</p>
     </div>
   </div>
 </header>
@@ -80,6 +80,28 @@
   </aside>
 
   <main id="main">
+    <section class="quick help" id="quick" aria-labelledby="quickH">
+      <h2 id="quickH">Was möchtest du beleuchten?</h2>
+      <div class="quickchips" id="quickChips">
+        <button type="button" data-quick="room"><b>Den ganzen Raum</b><span>breit strahlend, ab 50°</span></button>
+        <button type="button" data-quick="accent"><b>Bilder, Pflanzen, Deko</b><span>gezielt, schmal bis 24°</span></button>
+        <button type="button" data-quick="work"><b>Arbeitsfläche, Küche</b><span>mittel, 25–40°, 3000/4000 K</span></button>
+        <button type="button" data-quick="table"><b>Über dem Esstisch</b><span>Pendelleuchten</span></button>
+        <button type="button" data-quick="cozy"><b>Gemütlich warm</b><span>2700 K</span></button>
+      </div>
+      <details class="glossary"><summary>Begriffe kurz erklärt</summary>
+        <dl>
+          <dt>Lichtfarbe (Kelvin)</dt><dd>2700 K ist warm wie Glühlampenlicht, 3000 K warmweiß, 4000 K neutral und frisch – gut zum Arbeiten.</dd>
+          <dt>Abstrahlwinkel</dt><dd>Wie breit der Lichtkegel ist. Schmal (bis 24°) betont einzelne Dinge, breit (ab 50°) hellt Flächen auf.</dd>
+          <dt>Lumen (lm)</dt><dd>Wie viel Licht die Leuchte abgibt. Ein Strahler mit 800 lm entspricht etwa einer alten 60‑W‑Glühlampe.</dd>
+          <dt>CRI</dt><dd>Farbwiedergabe von 0 bis 100. Ab 90 wirken Farben natürlich – wichtig für Küche, Bilder und Kleidung.</dd>
+          <dt>UGR</dt><dd>Blendung. Je kleiner, desto weniger blendet die Leuchte; unter 19 gilt als blendarm.</dd>
+          <dt>Dimmung „Abschnitt“ / „Anschnitt“</dt><dd>Zwei Arten, wie ein Dimmer arbeitet. Die meisten LED‑Leuchten brauchen einen Phasen<b>ab</b>schnittdimmer. Der Dimmer muss zur Leuchte passen.</dd>
+          <dt>EUTRAC 3‑Phasen</dt><dd>Die Schiene hat drei getrennt schaltbare Stromkreise. An jedem Leuchtenadapter stellst du ein, an welchem Kreis die Leuchte hängt.</dd>
+        </dl>
+      </details>
+    </section>
+
     <div class="toolbar" id="viewTools">
       <button type="button" class="ghost filterbtn" id="filterBtn" aria-controls="filterPanel">Filter</button>
       <h2 class="count" id="count" tabindex="-1" aria-live="polite"></h2>
@@ -94,7 +116,7 @@
       </div>
     </div>
 
-    <details class="diff" id="diffPanel" open>
+    <details class="diff" id="diffPanel">
       <summary id="diffSum">Worin sich die Treffer unterscheiden</summary>
       <div id="diffBody"></div>
     </details>
@@ -123,6 +145,7 @@
   <aside class="plan" id="mlPanel" aria-labelledby="mlh">
     <div class="planhead"><h2 id="mlh">Lichtplan</h2><button type="button" class="ghost closeplan" data-close-sheet>Schließen</button></div>
     <p class="plansub">Deine Merkliste nach Raum</p>
+    <div class="nextstep" hidden></div>
     <div class="tools roomtools" id="roomTools"><input type="text" id="newRoom" placeholder="Neuer Raum, z. B. Küche" aria-label="Name für neuen Raum"><button class="ghost" id="addRoom" type="button">Raum anlegen</button></div>
     <div class="status" id="pickStatus">Merkliste wird geladen …</div>
     <div class="rooms" id="rooms"></div>
@@ -136,7 +159,7 @@
 
 <section class="printplan" id="printPlan" aria-hidden="true"></section>
 
-<footer class="sitefoot"><button type="button" class="linkbtn" id="tourLink">Tour</button><a href="schiene.html">Schienen planen</a><a href="belegung.html">Belegung</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><span class="credit">© 2026 Andreas Bosch · <a href="https://github.com/Andr3asB/eutrac-leuchten" rel="noopener">Quellcode (AGPL-3.0)</a></span></footer>
+<footer class="sitefoot"><button type="button" class="linkbtn" data-help-toggle>Hilfetexte ausblenden</button><button type="button" class="linkbtn" id="tourLink">Tour</button><a href="schiene.html">Schienen planen</a><a href="belegung.html">Belegung</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><span class="credit">© 2026 Andreas Bosch · <a href="https://github.com/Andr3asB/eutrac-leuchten" rel="noopener">Quellcode (AGPL-3.0)</a></span></footer>
 
 <dialog id="imgDlg" class="imgdlg" aria-labelledby="imgCap">
   <figure class="loading">
@@ -174,12 +197,13 @@
   </form>
 </dialog>
 
-<script src="config.js?v=20261101q"></script>
-<script src="vendor/supabase-2.117.3.js?v=20261101q"></script>
-<script src="share-ui.js?v=20261101q"></script>
-<script src="merkliste-store.js?v=20261101q"></script>
-<script src="schiene-engine.js?v=20261101q"></script>
-<script src="tour.js?v=20261101q"></script>
-<script src="app.js?v=20261101q"></script>
+<script src="config.js?v=20261102d"></script>
+<script src="vendor/supabase-2.117.3.js?v=20261102d"></script>
+<script src="share-ui.js?v=20261102d"></script>
+<script src="merkliste-store.js?v=20261102d"></script>
+<script src="schiene-engine.js?v=20261102d"></script>
+<script src="guide.js?v=20261102d"></script>
+<script src="tour.js?v=20261102d"></script>
+<script src="app.js?v=20261102d"></script>
 </body>
 </html>

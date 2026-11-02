@@ -20,7 +20,9 @@
     "dim-custom":{name:"anderer Dimmaktor (Werte eingeben)",typ:"dim",custom:true,ab:300,an:150,min:3},
     "mdt-aks-2016.03":{name:"MDT AKS-2016.03 (Schaltaktor 20-fach, 16 A)",typ:"sw",maxA:16,
       note:"16 A je Kanal, C-Last bis 140 µF, Einschaltstrom bis 600 A/150 µs. Bei vielen LED-Treibern auf einem Kanal deren Einschaltstrom beachten."},
-    "sw-custom":{name:"anderer Schaltaktor (Werte eingeben)",typ:"sw",custom:true,maxA:16}
+    "sw-custom":{name:"anderer Schaltaktor (Werte eingeben)",typ:"sw",custom:true,maxA:16},
+    "wall-dim":{name:"Wand-/Unterputzdimmer für LED (ohne KNX, Werte eingeben)",typ:"dim",custom:true,ab:150,an:100,min:5},
+    "wall-sw":{name:"normaler Lichtschalter (ohne KNX)",typ:"sw",maxA:10,note:"Alle Leuchten dieses Stromkreises gehen gemeinsam an und aus."}
   };
   const defKreise=()=>[1,2,3].map(i=>({n:"Stromkreis "+i,m:"dim",a:"mdt-akd-0401.02",v:"ab",ch:""}));
 
@@ -28,7 +30,7 @@
 
   // ---------- Daten ----------
   async function loadLamps(){
-    try{const rows=await (await fetch("leuchten.json?v=20261101q",{cache:"no-cache"})).json();
+    try{const rows=await (await fetch("leuchten.json?v=20261102d",{cache:"no-cache"})).json();
       rows.forEach(r=>{r.key=r.key||(r.brand.replace(/\W/g,"")+"_"+r.art);byKey[r.key]=r})}catch(e){status("Leuchtendaten konnten nicht geladen werden.","bad")}
   }
   const status=(t,cls="")=>{const el=$("blStatus");el.textContent=t;el.className="fine"+(cls?" "+cls:"")};
@@ -65,13 +67,22 @@
   function render(){
     renderPick();
     const pl=plan();
+    guide();
+    $("blSvgBox").closest(".bl-card").hidden=$("blCircuits").hidden=!pl;
+    $("blPick").hidden=!rooms.length;document.querySelector(".bl-layout").classList.toggle("nopl",!pl);
     if(!pl){$("blSvgBox").innerHTML="";$("blCircuits").innerHTML="";$("blLamps").innerHTML=emptyLamps();$("blSel").hidden=true;$("blHint").textContent="";$("blLegend").textContent="";renderList();return}
     if(!cur||cur.id!==pl.id)cur={id:pl.id,platz:JSON.parse(JSON.stringify(pl.platz||[])),kreise:JSON.parse(JSON.stringify(pl.kreise||defKreise()))};
     renderLamps();renderSvg();renderSel();renderCircuits();renderList();
   }
+  // Anleitung, solange für den Raum noch etwas fehlt
+  function guide(){if(window.Guide)Guide.update({rooms,assigns,rails:rails.map(p=>p.id===planId&&cur?{...p,platz:cur.platz}:p),hash:shareHash()})}
   function emptyLamps(){
-    if(!rooms.length)return `<h2>Leuchten im Raum</h2><p class="fine">Noch keine Räume. Leg im Reiter <a href="./${shareHash()}">Leuchten</a> einen Raum an und merk dir Leuchten.</p>`;
-    return `<h2>Leuchten im Raum</h2><p class="fine">Für diesen Raum gibt es noch keinen Schienenplan. <a href="schiene.html?raum=${encodeURIComponent(room)}${shareHash()}">Schiene planen</a></p>`;
+    const h=shareHash(),r=rooms.find(x=>x.id===room),hasLamps=room?assigns.some(a=>a.raum===room):assigns.length>0,hasRail=rails.some(p=>p.raum===room);
+    const li=(ok,txt,link)=>`<li class="${ok?"ok":""}"><span aria-hidden="true">${ok?"✓":""}</span><div>${txt}${!ok&&link?`<br>${link}`:""}</div></li>`;
+    return `<h2>So geht’s</h2><p class="fine">${r?`Für „${esc(r.name)}“ fehlt noch etwas:`:"Für die Belegung brauchst du zwei Dinge:"}</p><ol class="bl-steps">
+      ${li(hasLamps,"Leuchten für den Raum merken",`<a class="ghost" href="./${h}">Leuchten auswählen</a>`)}
+      ${li(hasRail,"Schiene für den Raum planen und speichern",`<a class="ghost" href="schiene.html${room?"?raum="+encodeURIComponent(room):""}${h}">Schiene planen</a>`)}
+      ${li(false,"Hier die Leuchten auf die Schiene setzen und auf die drei Stromkreise verteilen","")}</ol>`;
   }
   function renderPick(){
     const rs=$("blRoom"),ps=$("blPlan");
@@ -140,7 +151,7 @@
     if(unkW)out.push({c:"warn",t:`${unkW}× ohne Watt-Angabe (z. B. „je Leuchtmittel“) – Last bitte ergänzen.`});
     if(k.m==="dim"){
       const max=a.custom?(num(k.maxW)??a[k.v==="an"?"an":"ab"]):a[k.v==="an"?"an":"ab"], min=a.custom?(num(k.minW)??a.min):a.min;
-      if(W>max)out.push({c:"bad",t:`Last ${fW(W)} über ${fW(max)} je Kanal (${k.v==="an"?"Phasenanschnitt":"Phasenabschnitt"}). Leuchten auf einen anderen Kreis legen oder Kanäle zusammenschalten.`});
+      if(W>max)out.push({c:"bad",t:`Last ${fW(W)} über ${fW(max)} je Kanal (${k.v==="an"?"Phasenanschnitt":"Phasenabschnitt"}). ${/^wall/.test(k.a)?"Leuchten auf einen anderen Kreis legen oder einen stärkeren Dimmer wählen.":"Leuchten auf einen anderen Kreis legen oder Kanäle zusammenschalten."}`});
       else out.push({c:"ok",t:`Last ${fW(W)} von ${fW(max)} je Kanal (${Math.round(W/max*100)} %).`});
       if(W<min)out.push({c:"warn",t:`Unter der Mindestlast von ${fW(min)} – der Aktor erkennt die Last evtl. nicht.`});
       if(a.maxLamps&&n>a.maxLamps)out.push({c:"warn",t:`${n} Leuchten auf einem Kanal – laut Hersteller meist höchstens ${a.maxLamps} LED-Leuchtmittel je Kanal.`});
@@ -148,13 +159,13 @@
       if(k.v==="an"&&cls.includes("ab"))out.push({c:"bad",t:`${cls.filter(c=>c==="ab").length}× nur für Phasenabschnitt geeignet, Kanal steht auf Phasenanschnitt.`});
       if(k.v!=="an"&&cls.includes("an"))out.push({c:"bad",t:`${cls.filter(c=>c==="an").length}× nur für Phasenanschnitt geeignet, Kanal steht auf Phasenabschnitt.`});
       if(cls.includes("ab")&&cls.includes("an"))out.push({c:"bad",t:"Gemischte Dimmverfahren auf einem Kreis (Anschnitt- und Abschnitt-Leuchten) – auf getrennte Kreise legen."});
-      const unk=cls.filter(c=>c==="unk").length;if(unk)out.push({c:"warn",t:`${unk}× Dimmart unbekannt (k. A. oder je Leuchtmittel) – vor dem Kauf am Aktor testen.`});
+      const unk=cls.filter(c=>c==="unk").length;if(unk)out.push({c:"warn",t:`${unk}× Dimmart unbekannt (k. A. oder je Leuchtmittel) – vor dem Kauf am Dimmer testen.`});
     }else{
       const maxA=a.custom?(num(k.maxA)??16):a.maxA,A=W/230;
       out.push({c:A>maxA?"bad":"ok",t:`Schalten: ${fW(W)} ≈ ${A.toLocaleString("de-DE",{maximumFractionDigits:1})} A von ${maxA} A.`});
       const dimOnly=lamps.filter(L=>L&&/dimm|schnitt/i.test(L.dim)).length;if(dimOnly)out.push({c:"info",t:"Geschaltet statt gedimmt: Die Leuchten laufen dann immer mit voller Helligkeit."});
     }
-    if(!String(k.ch||"").trim())out.push({c:"info",t:"Aktor-Kanal noch nicht eingetragen."});
+    if(!String(k.ch||"").trim()&&!/^wall/.test(k.a))out.push({c:"info",t:"Aktor-Kanal noch nicht eingetragen."});
     return {W,out};
   }
   function circuitLamps(platz,i){return platz.filter(p=>(p[3]||1)===i).map(p=>byKey[p[0]])}
@@ -165,12 +176,12 @@
       return `<article class="bl-card bl-kreis" data-k="${i}">
         <h3><i class="kdot" style="background:${KC[i].c}"></i>Stromkreis ${i} <span class="fine">${KC[i].n} · Ader ${KC[i].t}</span></h3>
         <div class="f"><label>Name</label><input type="text" data-f="n" value="${esc(k.n)}" maxlength="40"></div>
-        <div class="bl-row"><div class="f"><label>Betriebsart</label><select data-f="m"><option value="dim"${k.m==="dim"?" selected":""}>Dimmen</option><option value="sw"${k.m==="sw"?" selected":""}>Schalten</option></select></div>
+        <div class="bl-row"><div class="f"><label>Licht wird …</label><select data-f="m"><option value="dim"${k.m==="dim"?" selected":""}>gedimmt</option><option value="sw"${k.m==="sw"?" selected":""}>nur an/aus geschaltet</option></select></div>
           ${k.m==="dim"?`<div class="f"><label>Dimmverfahren</label><select data-f="v"><option value="ab"${k.v!=="an"?" selected":""}>Phasenabschnitt</option><option value="an"${k.v==="an"?" selected":""}>Phasenanschnitt</option></select></div>`:""}</div>
-        <div class="f"><label>Aktor</label><select data-f="a">${opts}</select></div>
+        <div class="f"><label>Dimmer / Schalter</label><select data-f="a">${opts}</select></div>
         ${a.custom?(k.m==="dim"?`<div class="bl-row"><div class="f"><label>Max. W je Kanal</label><input type="text" inputmode="decimal" data-f="maxW" value="${esc(k.maxW??a[k.v==="an"?"an":"ab"])}"></div><div class="f"><label>Mindestlast W</label><input type="text" inputmode="decimal" data-f="minW" value="${esc(k.minW??a.min)}"></div></div>`
-          :`<div class="f"><label>Max. A je Kanal</label><input type="text" inputmode="decimal" data-f="maxA" value="${esc(k.maxA??16)}"></div>`):`<p class="fine">${esc(a.note||"")}</p>`}
-        <div class="f"><label>Kanal am Aktor</label><input type="text" data-f="ch" value="${esc(k.ch||"")}" placeholder="z. B. AKD 1 · Kanal A" maxlength="40"></div>
+          :`<div class="f"><label>Max. A je Kanal</label><input type="text" inputmode="decimal" data-f="maxA" value="${esc(k.maxA??16)}"></div>`):`<p class="fine help">${esc(a.note||"")}</p>`}
+        <div class="f"><label>Bezeichnung / Kanal</label><input type="text" data-f="ch" value="${esc(k.ch||"")}" placeholder="z. B. AKD 1 · Kanal A oder „Schalter Tür“" maxlength="40"></div>
         <p class="bl-sum"><b>${lamps.length} ${lamps.length===1?"Leuchte":"Leuchten"} · ${fW(r.W)}</b>${cnt.size?`<br><span class="fine">${[...cnt].map(([m,c])=>`${c}× ${esc(m)}`).join(", ")}</span>`:""}</p>
         <ul class="bl-checks">${r.out.map(c=>`<li class="${c.c}">${esc(c.t)}</li>`).join("")}</ul>
       </article>`}).join("");
@@ -232,7 +243,7 @@
     // nur Prüfung/Liste neu, damit das Eingabefeld den Fokus behält
     const card=e.target.closest("[data-k]"),r=check(cur.kreise[i-1],circuitLamps(cur.platz,i));card.querySelector(".bl-checks").innerHTML=r.out.map(c=>`<li class="${c.c}">${esc(c.t)}</li>`).join("");renderList();if(f==="n")renderSel()});
   $("blCircuits").addEventListener("change",e=>{const f=e.target.dataset.f;if(!f||e.target.tagName!=="SELECT")return;const i=+e.target.closest("[data-k]").dataset.k,k=cur.kreise[i-1];
-    k[f]=e.target.value;if(f==="m"){k.a=k.m==="dim"?"mdt-akd-0401.02":"mdt-aks-2016.03"}save();render()});
+    k[f]=e.target.value;if(f==="m"){const wall=/^wall/.test(k.a);k.a=k.m==="dim"?(wall?"wall-dim":"mdt-akd-0401.02"):(wall?"wall-sw":"mdt-aks-2016.03")}save();render()});
   $("blPrint").onclick=()=>window.print();
 
   function bindSvg(){
@@ -253,7 +264,7 @@
     };
     svg.onpointermove=ev=>{if(!drag)return;const p=toMM(ev),q=project(G.g,p.x,p.y);if(!q)return;const pl=cur.platz[drag.i];
       if(q.x!==pl[1]||q.y!==pl[2]){pl[1]=q.x;pl[2]=q.y;drag.moved=true;drag.el.setAttribute("transform",`translate(${G.ox+q.x*G.k},${G.oy+q.y*G.k})`)}};
-    svg.onpointerup=()=>{if(!drag)return;const mv=drag.moved;drag=null;if(mv){save();renderCircuits();renderList()}};
+    svg.onpointerup=()=>{if(!drag)return;const mv=drag.moved,later=drag.later;drag=null;if(mv){save();renderCircuits();renderList()}if(later)render()};
     svg.onpointercancel=()=>{drag=null;render()};
   }
 
@@ -283,7 +294,8 @@
     db.collection("zuordnung").onSnapshot(sn=>{assigns=sn.docs.map(d=>({id:d.id,...d.data()}));got.a=1;ready()});
     db.collection("schienen").onSnapshot(sn=>{rails=sn.docs.map(d=>({id:d.id,...d.data()})).filter(p=>p.raum).sort((a,b)=>(a.t||0)-(b.t||0));got.s=1;
       // Änderungen anderer übernehmen, solange hier nichts ungespeichert ist
-      if(cur&&!saveT&&!drag){const p=rails.find(x=>x.id===cur.id);if(p&&JSON.stringify([p.platz||[],p.kreise||defKreise()])!==JSON.stringify([cur.platz,cur.kreise]))cur=null}
+      if(drag){drag.later=true;return}   // erst nach dem Loslassen neu zeichnen
+      if(cur&&!saveT){const p=rails.find(x=>x.id===cur.id);if(p&&JSON.stringify([p.platz||[],p.kreise||defKreise()])!==JSON.stringify([cur.platz,cur.kreise]))cur=null}
       ready()});
   }
 

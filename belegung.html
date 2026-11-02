@@ -10,8 +10,8 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <meta name="theme-color" content="#262E3C">
-<link rel="stylesheet" href="fonts.css?v=20261101q">
-<link rel="stylesheet" href="style.css?v=20261101q">
+<link rel="stylesheet" href="fonts.css?v=20261102d">
+<link rel="stylesheet" href="style.css?v=20261102d">
 </head>
 <body class="placing" data-tour="belegung">
 <a class="skiplink" href="#blMain">Zur Belegung springen</a>
@@ -28,8 +28,8 @@
   </div>
   <div class="topin">
     <div>
-      <h1>Belegung und Stromkreise</h1>
-      <p class="lead">Setz die gemerkten Leuchten eines Raums auf die geplante Schiene, verteil sie auf die drei Stromkreise (L1, L2, L3 – am Adapter einstellbar) und ordne jedem Kreis einen Kanal am KNX-Dimm- oder Schaltaktor zu. Der Planer prüft Last, Mindestlast und Dimmverfahren.</p>
+      <h1>Leuchten setzen und schalten</h1>
+      <p class="lead help">Hier setzt du die gemerkten Leuchten auf die geplante Schiene. Die EUTRAC‑Schiene hat drei getrennte Stromkreise: Jede Leuchte hängt an einem davon (am Adapter einstellbar), und jeder Kreis wird für sich geschaltet oder gedimmt – mit KNX‑Aktor, Wanddimmer oder normalem Schalter. Der Planer prüft, ob Last und Dimmer zusammenpassen.</p>
     </div>
   </div>
 </header>
@@ -40,6 +40,8 @@
     <label class="inl">Schiene <select id="blPlan"></select></label>
     <span class="fine" id="blStatus" aria-live="polite"></span>
   </div>
+
+  <div class="nextstep bl-next" hidden></div>
 
   <aside class="bl-side" aria-label="Leuchten im Raum">
     <section class="bl-card" id="blLamps"></section>
@@ -62,7 +64,7 @@
   </section>
 </div>
 
-<footer class="sitefoot"><button type="button" class="linkbtn" id="tourLink">Tour</button><a href="./">Leuchten auswählen</a><a href="schiene.html">Schienen planen</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><span class="credit">© 2026 Andreas Bosch · <a href="https://github.com/Andr3asB/eutrac-leuchten" rel="noopener">Quellcode (AGPL-3.0)</a></span></footer>
+<footer class="sitefoot"><button type="button" class="linkbtn" data-help-toggle>Hilfetexte ausblenden</button><button type="button" class="linkbtn" id="tourLink">Tour</button><a href="./">Leuchten auswählen</a><a href="schiene.html">Schienen planen</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><span class="credit">© 2026 Andreas Bosch · <a href="https://github.com/Andr3asB/eutrac-leuchten" rel="noopener">Quellcode (AGPL-3.0)</a></span></footer>
 
 <dialog id="pwDlg">
   <form id="pwForm">
@@ -74,12 +76,13 @@
   </form>
 </dialog>
 
-<script src="config.js?v=20261101q"></script>
-<script src="vendor/supabase-2.117.3.js?v=20261101q"></script>
-<script src="share-ui.js?v=20261101q"></script>
-<script src="merkliste-store.js?v=20261101q"></script>
-<script src="tour.js?v=20261101q"></script>
-<script src="schiene-engine.js?v=20261101q"></script>
-<script src="belegung.js?v=20261101q"></script>
+<script src="config.js?v=20261102d"></script>
+<script src="vendor/supabase-2.117.3.js?v=20261102d"></script>
+<script src="share-ui.js?v=20261102d"></script>
+<script src="merkliste-store.js?v=20261102d"></script>
+<script src="guide.js?v=20261102d"></script>
+<script src="tour.js?v=20261102d"></script>
+<script src="schiene-engine.js?v=20261102d"></script>
+<script src="belegung.js?v=20261102d"></script>
 </body>
 </html>
