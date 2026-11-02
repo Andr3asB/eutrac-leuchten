@@ -4,7 +4,7 @@
 // und KNX-Aktoren zuordnen. Gespeichert im Schienenplan-Eintrag der Merkliste (Felder platz und kreise).
 (function(){
   const E=window.SchienenEngine, S=window.MerklisteStore, $=id=>document.getElementById(id);
-  const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const num=v=>{const n=parseFloat(String(v??"").replace(",","."));return isFinite(n)?n:null};
   const fW=w=>(Math.round(w*10)/10).toLocaleString("de-DE")+" W";
   const fM=mm=>(mm/1000).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2})+" m";
@@ -30,7 +30,7 @@
 
   // ---------- Daten ----------
   async function loadLamps(){
-    try{const rows=await (await fetch("leuchten.json?v=20261102d",{cache:"no-cache"})).json();
+    try{const rows=await (await fetch("leuchten.json?v=20261102e",{cache:"no-cache"})).json();
       rows.forEach(r=>{r.key=r.key||(r.brand.replace(/\W/g,"")+"_"+r.art);byKey[r.key]=r})}catch(e){status("Leuchtendaten konnten nicht geladen werden.","bad")}
   }
   const status=(t,cls="")=>{const el=$("blStatus");el.textContent=t;el.className="fine"+(cls?" "+cls:"")};
@@ -126,7 +126,7 @@
     const total=g.lines.reduce((t,[a,b,c,d])=>t+Math.hypot(c-a,d-b),0);
     s+=`<text x="${W-10}" y="${H-10}" text-anchor="end" class="tG">Schienenachse ${fM(total)}</text>`;
     cur.platz.forEach((p,i)=>{const L=byKey[p[0]],kc=KC[p[3]]||KC[1],inRoom=roomLamps().has(p[0]);
-      s+=`<g class="bl-m${i===selM?" sel":""}${inRoom?"":" stale"}" data-i="${i}" transform="translate(${X(p[1])},${Y(p[2])})"><circle r="13" fill="${kc.c}"/><text y="4.5" text-anchor="middle">${p[3]||1}</text><title>${esc(lampName(L))} – Stromkreis ${p[3]} (${kc.n})</title></g>`});
+      s+=`<g class="bl-m${i===selM?" sel":""}${inRoom?"":" stale"}" data-i="${i}" transform="translate(${X(p[1])},${Y(p[2])})"><circle r="13" fill="${kc.c}"/><text y="4.5" text-anchor="middle">${esc(p[3]||1)}</text><title>${esc(lampName(L))} – Stromkreis ${esc(p[3])} (${kc.n})</title></g>`});
     s+=`</svg>`;
     $("blSvgBox").innerHTML=s;
     $("blHint").textContent=tool?`Setzen: ${lampShort(byKey[tool])} – auf die Schiene tippen.`:"Leuchte in der Liste wählen oder eine gesetzte Leuchte antippen.";
@@ -140,7 +140,7 @@
     el.innerHTML=`<h2>Ausgewählte Leuchte</h2><p><b>${esc(lampName(L))}</b><br><span class="fine">${esc(lampShort(L))} · ${L&&L.w!=null?fW(L.w):"W k. A."} · Dimmung: ${esc(L?L.dim:"–")}</span></p>
       <div class="chips" role="radiogroup" aria-label="Stromkreis">${[1,2,3].map(i=>`<button type="button" role="radio" aria-checked="${p[3]===i}" data-kreis="${i}"><i class="kdot" style="background:${KC[i].c}"></i>Kreis ${i} · ${esc(cur.kreise[i-1].n)}</button>`).join("")}</div>
       <p class="fine">Am Adapter der Leuchte den Phasenwahlschalter auf ${KC[p[3]].n} stellen.</p>
-      <div class="savebtns"><button type="button" class="ghost" id="blAllSame">Alle ${esc(L?L.model:"")} auf Kreis ${p[3]}</button><button type="button" class="ghost" id="blDel">Entfernen</button></div>`;
+      <div class="savebtns"><button type="button" class="ghost" id="blAllSame">Alle ${esc(L?L.model:"")} auf Kreis ${esc(p[3])}</button><button type="button" class="ghost" id="blDel">Entfernen</button></div>`;
   }
   // ---------- Stromkreise und Prüfung ----------
   function dimClass(d){d=String(d||"");if(/^An-\/Abschnitt/.test(d))return "both";if(/^Abschnitt/.test(d))return "ab";if(/^Anschnitt/.test(d))return "an";return "unk"}

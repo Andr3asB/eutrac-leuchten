@@ -18,6 +18,57 @@
   const empty=()=>({raeume:{},zuordnung:{},schienen:{}});
   const err=(code,msg)=>{const e=new Error(msg||code);e.code=code;return e};
 
+  // ---------- Prüfung geladener Daten ----------
+  // Gemeinsame Listen kommen von anderen Personen; auch Cookies lassen sich verändern. Alles, was geladen wird,
+  // wird deshalb hier auf das erwartete Format gebracht: unbekannte Felder fallen weg, IDs und Schlüssel nur aus
+  // sicheren Zeichen, Zahlen endlich und begrenzt, Texte gekürzt. Die Anzeige maskiert zusätzlich alle Werte.
+  const ID=/^[A-Za-z0-9_-]{1,80}$/, KEY=/^[A-Za-z0-9_.-]{1,120}$/, ROOT=/^[A-Za-z0-9_-]{1,80}$/;
+  const str=(v,max)=>typeof v==="string"?v.slice(0,max):"";
+  const fin=(v,min,max,def)=>{const n=Number(v);return Number.isFinite(n)?Math.min(max,Math.max(min,n)):def};
+  const int=(v,min,max,def)=>{const n=Math.round(Number(v));return Number.isFinite(n)?Math.min(max,Math.max(min,n)):def};
+  const arr=(v,max)=>Array.isArray(v)?v.slice(0,max):[];
+  const oneOf=(v,list,def)=>list.includes(v)?v:def;
+  const C=20000; // größte Rasterkoordinate (bei 1 cm Raster 200 m)
+  function cleanPlan(p){
+    if(!p||typeof p!=="object")return {m:"s",len:3000};
+    const o=p.o&&typeof p.o==="object"?p.o:{};
+    const out={m:oneOf(p.m,["s","d"],"s"),
+      o:{maxLen:oneOf(String(o.maxLen),["2","3","4"],"3"),color:oneOf(o.color,["weiss","schwarz","silber"],"weiss"),
+         mount:oneOf(o.mount,["direct","clip","rod60","rod120","rope150","rope300","rope620"],"direct"),spacing:oneOf(String(o.spacing),["500","1000"],"1000")},
+      hv:arr(p.hv,40).filter(k=>typeof k==="string"&&KEY.test(k))};
+    if(out.m==="s"){out.len=int(p.len,300,50000,3000);out.feed=oneOf(p.feed,["left","right","mid"],"left");out.side=oneOf(p.side,["N","S"],"S");return out}
+    out.st=int(p.st,5,1000,500);
+    const pt=v=>arr(v,2).length===2&&v.every(x=>Number.isInteger(x)&&Math.abs(x)<=C);
+    out.l=arr(p.l,400).filter(l=>Array.isArray(l)&&l.length===4&&l.every(x=>Number.isInteger(x)&&Math.abs(x)<=C));
+    // Gesamtlänge in Rasterschritten begrenzen (sonst erzeugt ein präparierter Plan Millionen Teilstücke)
+    let units=0;out.l=out.l.filter(([a,b,c,d])=>{units+=Math.max(Math.abs(c-a),Math.abs(d-b));return units<=20000});
+    out.fx=arr(p.fx,200).filter(pt);out.fd=arr(p.fd,50).filter(pt);
+    out.md=arr(p.md,50).filter(m=>typeof m==="string"&&/^-?\d{1,6},-?\d{1,6},(h|v|-?\d{1,6},-?\d{1,6})$/.test(m));
+    out.a=[fin(arr(p.a,2)[0],1,60,6),fin(arr(p.a,2)[1],1,60,4)];
+    if(p.simple&&typeof p.simple==="object")out.simple={s:oneOf(p.simple.s,["L","U","T","rect","plus","H"],"L"),A:int(p.simple.A,300,30000,3000),B:int(p.simple.B,300,30000,2000),f:str(p.simple.f,4).replace(/[^a-z0-9]/g,"")};
+    return out;
+  }
+  function cleanKreise(k){
+    if(!Array.isArray(k))return undefined;
+    return [0,1,2].map(i=>{const x=k[i]&&typeof k[i]==="object"?k[i]:{};const r={n:str(x.n,40)||("Stromkreis "+(i+1)),m:oneOf(x.m,["dim","sw"],"dim"),
+      a:typeof x.a==="string"&&/^[a-z0-9.-]{1,40}$/.test(x.a)?x.a:"mdt-akd-0401.02",v:oneOf(x.v,["ab","an"],"ab"),ch:str(x.ch,40)};
+      ["maxW","minW","maxA"].forEach(f=>{if(x[f]!=null&&x[f]!=="")r[f]=String(fin(String(x[f]).replace(",","."),0,100000,0))});return r});
+  }
+  function sanitize(d){
+    const out=empty();if(!d||typeof d!=="object")return out;
+    const each=(col,fn)=>{const c=d[col];if(!c||typeof c!=="object")return;let n=0;for(const id of Object.keys(c)){if(n>=2000)break;if(!ID.test(id))continue;const v=fn(c[id]||{});if(v){out[col][id]=v;n++}}};
+    each("raeume",v=>({name:str(v.name,60)||"Raum",gruppen:arr(v.gruppen,30).filter(g=>typeof g==="string").map(g=>g.slice(0,40)),pos:fin(v.pos,-1e15,1e15,0)}));
+    each("zuordnung",v=>typeof v.leuchte==="string"&&KEY.test(v.leuchte)&&typeof v.raum==="string"&&ROOT.test(v.raum)?
+      {leuchte:v.leuchte,raum:v.raum,gruppe:str(v.gruppe,40),stueck:int(v.stueck,1,50,1),t:fin(v.t,0,1e15,0)}:null);
+    each("schienen",v=>{if(typeof v.raum!=="string"||!ROOT.test(v.raum))return null;
+      const r={raum:v.raum,name:str(v.name,60)||"Schiene",t:fin(v.t,0,1e15,0),plan:cleanPlan(v.plan)};
+      const k=cleanKreise(v.kreise);if(k)r.kreise=k;
+      if(Array.isArray(v.platz))r.platz=v.platz.slice(0,500).filter(p=>Array.isArray(p)&&typeof p[0]==="string"&&KEY.test(p[0])&&Number.isFinite(p[1])&&Number.isFinite(p[2]))
+        .map(p=>[p[0],Math.round(fin(p[1],-1e6,1e6,0)),Math.round(fin(p[2],-1e6,1e6,0)),int(p[3],1,3,1)]);
+      return r});
+    return out;
+  }
+
   // ---------- Cookie-Speicher (lokal) ----------
   // Höchstens 2 × 3500 Zeichen: Cookies werden bei jedem Seitenaufruf mitgeschickt und Server begrenzen die Header-Größe.
   const NAME="merkliste", CHUNK=3500, MAX_CHUNKS=2;
@@ -46,7 +97,7 @@
   const toB64=str=>b64u(enc.encode(str)), fromB64=s=>dec.decode(unb64u(s));
   const cookieStore={
     works(){try{setCookie(NAME+"_test","1");const ok=readCookies()[NAME+"_test"]==="1";delCookie(NAME+"_test");return ok}catch(e){return false}},
-    load(){try{const c=readCookies(),n=+c[NAME+"_n"]||0;let s="";for(let i=0;i<n;i++){if(c[NAME+"_"+i]==null)return null;s+=c[NAME+"_"+i]}return n?unpack(JSON.parse(fromB64(s))):null}catch(e){return null}},
+    load(){try{const c=readCookies(),n=+c[NAME+"_n"]||0;let s="";for(let i=0;i<n;i++){if(c[NAME+"_"+i]==null)return null;s+=c[NAME+"_"+i]}return n?sanitize(unpack(JSON.parse(fromB64(s)))):null}catch(e){return null}},
     save(data){
       const s=toB64(JSON.stringify(pack(data))),parts=[];
       for(let i=0;i<s.length;i+=CHUNK)parts.push(s.slice(i,i+CHUNK));
@@ -84,8 +135,9 @@
   }
   async function decryptData(k,s){
     const raw=unb64u(s);
-    try{const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:raw.slice(0,12),additionalData:k.aad},k.key,raw.slice(12));return JSON.parse(dec.decode(pt))}
+    let obj;try{const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:raw.slice(0,12),additionalData:k.aad},k.key,raw.slice(12));obj=JSON.parse(dec.decode(pt))}
     catch(e){throw err("bad_key","Passwort falsch oder Link unvollständig.")}
+    return sanitize(obj);
   }
   // Abgeleitete Schlüssel pro Tab merken, damit das Passwort beim Neuladen nicht erneut nötig ist
   const keyCache={
@@ -112,7 +164,12 @@
   }
   async function rpc(fn,args){
     const {data,error}=await sb().rpc(fn,args);
-    if(error){ if(error.code==="42501")throw err("forbidden","Keine Schreibberechtigung für diese Liste."); throw err("network",error.message) }
+    if(error){ const m=String(error.message||"");
+      if(error.code==="42501")throw err("forbidden","Keine Schreibberechtigung für diese Liste.");
+      if(/rate_limited/.test(m))throw err("rate_limited","Gerade wurden sehr viele gemeinsame Listen angelegt. Bitte in einer Stunde erneut versuchen.");
+      if(/storage_full/.test(m))throw err("storage_full","Der Speicher für gemeinsame Listen ist im Moment voll. Bitte später erneut versuchen.");
+      if(/too_large/.test(m))throw err("too_large","Die Liste ist zu groß für eine gemeinsame Liste. Bitte nicht mehr benötigte Einträge entfernen.");
+      throw err("network","Verbindung zum Speicherdienst fehlgeschlagen.") }
     return data;
   }
   async function fetchRow(id){
@@ -235,5 +292,5 @@
   function leaveShared(){cookieStore.setShared("")}
 
   window.MerklisteStore={openLocal,openShared,createShared,leaveShared,parseLink,configured,
-    rememberedShared:()=>cookieStore.getShared(), open:openLocal};
+    rememberedShared:()=>cookieStore.getShared(), open:openLocal, sanitize};
 })();

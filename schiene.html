@@ -2,6 +2,8 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self'; connect-src 'self' https://yvpnuitixodicbgfteei.supabase.co wss://yvpnuitixodicbgfteei.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'; frame-src 'none'; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests">
+<script src="frame-guard.js?v=20261102e"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Schienen – Lichtplaner für EUTRAC</title>
 <meta name="description" content="Stückliste für die EUTRAC 3-Phasen-Aufbauschiene: Schienen, Einspeiser, Verbinder, Endkappen und Befestigung – mit richtiger Lage des Schutzleiters.">
@@ -9,8 +11,8 @@
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="theme-color" content="#262E3C">
-<link rel="stylesheet" href="fonts.css?v=20261102d">
-<link rel="stylesheet" href="style.css?v=20261102d">
+<link rel="stylesheet" href="fonts.css?v=20261102e">
+<link rel="stylesheet" href="style.css?v=20261102e">
 </head>
 <body class="planner" data-tour="schienen">
 <a class="skiplink" href="#planOut">Zur Stückliste springen</a>
@@ -43,7 +45,7 @@
 </div>
 
 <div class="planlayout">
-  <form class="planform" id="planForm" aria-label="Schiene planen" onsubmit="return false">
+  <form class="planform" id="planForm" aria-label="Schiene planen">
     <fieldset class="simpleonly" id="shapeBox">
       <legend><span class="stepno">1</span>Form</legend>
       <div class="shapecards" role="radiogroup" aria-label="Form der Schiene" id="shapeCards"></div>
@@ -182,13 +184,13 @@
   </form>
 </dialog>
 
-<script src="config.js?v=20261102d"></script>
-<script src="vendor/supabase-2.117.3.js?v=20261102d"></script>
-<script src="share-ui.js?v=20261102d"></script>
-<script src="merkliste-store.js?v=20261102d"></script>
-<script src="guide.js?v=20261102d"></script>
-<script src="tour.js?v=20261102d"></script>
-<script src="schiene-engine.js?v=20261102d"></script>
-<script src="schiene.js?v=20261102d"></script>
+<script src="config.js?v=20261102e"></script>
+<script src="vendor/supabase-2.117.3.js?v=20261102e"></script>
+<script src="share-ui.js?v=20261102e"></script>
+<script src="merkliste-store.js?v=20261102e"></script>
+<script src="guide.js?v=20261102e"></script>
+<script src="tour.js?v=20261102e"></script>
+<script src="schiene-engine.js?v=20261102e"></script>
+<script src="schiene.js?v=20261102e"></script>
 </body>
 </html>

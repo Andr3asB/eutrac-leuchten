@@ -6,7 +6,7 @@
 //  • Hilfetexte ein-/ausblenden (Kompaktansicht für Wiederkehrer, gemerkt im Browser)
 (function(){
   const $=id=>document.getElementById(id);
-  const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const PAGE=document.body.dataset.tour||"leuchten";
   const KEY="lp_hilfe";
 

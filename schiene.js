@@ -7,7 +7,7 @@
     dims:{},sfeed:{},sArea:[6,4],
     segs:new Set(),diags:new Set(),flex:new Set(),feeds:new Set(),mids:new Set(),undo:[]};
   const fmtM=mm=>(mm/1000).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2})+" m";
-  const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const num=v=>parseFloat(String(v).replace(",","."));
   const RED="#D7262E";
 
@@ -24,6 +24,7 @@
   $("flip").onclick=()=>{st.side=st.side==="N"?"S":"N";$("haveFeed").value="";render()};
   $("haveFeed").addEventListener("input",()=>{applyHave();render()});
   $("printBtn").onclick=()=>window.print();
+  $("planForm").addEventListener("submit",e=>e.preventDefault());   // Enter in einem Feld lädt die Seite nicht neu
   $("undo").onclick=()=>{const s=st.undo.pop();if(s){restore(s);render()}};
   $("clearAll").onclick=()=>{snapshot();st.autoFeed=null;st.segs.clear();st.diags.clear();st.flex.clear();st.feeds.clear();st.mids.clear();render()};
   $("bom").addEventListener("change",e=>{const k=e.target.dataset.have;if(k){st.have[k]=e.target.checked;render()}});
@@ -218,7 +219,7 @@
     const extra=short.map(e=>({ok:false,text:`Schiene zwischen ${e.a} und ${e.b} ist kürzer als 10 cm (Achsmaß ${fmtM(e.axis)}). Abstand vergrößern.`}));
     $("checks").innerHTML=[...b.checks,...extra].map(c=>`<li class="${c.ok?"ok":c.warn?"warn":"bad"}"><span aria-hidden="true">${c.ok?"✓":"!"}</span> ${esc(c.text)}</li>`).join("")+solved.warnings.map(w=>`<li class="warn"><span aria-hidden="true">!</span> ${esc(w)}</li>`).join("");
     $("bom").querySelector("tbody").innerHTML=b.items.map(it=>`<tr class="${st.have[it.key]?"have":""}">
-      <td><input type="checkbox" data-have="${it.key}" ${st.have[it.key]?"checked":""} aria-label="${esc(it.name)} schon vorhanden"></td>
+      <td><input type="checkbox" data-have="${esc(it.key)}" ${st.have[it.key]?"checked":""} aria-label="${esc(it.name)} schon vorhanden"></td>
       <td class="n"><b>${it.qty}×</b></td><td>${esc(it.name)}${it.why.length?`<span class="why">${esc([...new Set(it.why)].join("; "))}</span>`:""}</td>
       <td class="mono">${esc(it.eutrac)}</td><td class="mono">${it.slv?esc(it.slv):'<span class="na">nicht bei SLV</span>'}</td></tr>`).join("");
     const miss=b.items.filter(it=>!st.have[it.key]);

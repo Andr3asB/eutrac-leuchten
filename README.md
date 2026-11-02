@@ -54,6 +54,14 @@ python3 -m http.server
 ```
 
 
+## Sicherheit
+
+- Gemeinsame Listen sind im Browser verschlüsselt (AES-256-GCM, Schlüssel nur im `#`-Teil des Links); die Datenbank sieht nur Chiffretext.
+- Alles, was aus Cookies oder gemeinsamen Listen geladen wird, wird beim Laden geprüft (`sanitize` in `merkliste-store.js`) und bei der Anzeige maskiert.
+- Content-Security-Policy in allen Seiten (keine Inline-Skripte), Schutz gegen Einbetten (`frame-guard.js`).
+- Datenbank: nur über vier Funktionen erreichbar, Größen- und Mengenbegrenzung, automatisches Aufräumen (`supabase/schema.sql`, nach Änderungen im SQL Editor erneut ausführen).
+- Bericht und Umsetzung: [docs/security-2026-11-02.md](docs/security-2026-11-02.md); Angriffstest: `tests/xss-shared-list.poc.js`.
+
 ## Lizenz
 
 Copyright (C) 2026 Andreas Bosch.

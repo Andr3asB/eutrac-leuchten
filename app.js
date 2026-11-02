@@ -3,8 +3,11 @@
 // Leuchtendaten kommen aus leuchten.json, die Merkliste aus einem Sitzungs-Cookie (merkliste-store.js).
 (async()=>{
 let rows;
-try{ rows=await (await fetch("leuchten.json?v=20261101h",{cache:"no-cache"})).json() }
+try{ rows=await (await fetch("leuchten.json?v=20261102e",{cache:"no-cache"})).json() }
 catch(e){ document.getElementById("count").textContent="Leuchtendaten (leuchten.json) konnten nicht geladen werden."; return }
+// Links aus den Daten nur mit https:// zulassen (Schutz vor javascript:-Links in Daten-Beiträgen)
+const safeUrl=u=>typeof u==="string"&&/^https:\/\/[^\s"'<>]+$/i.test(u)?u:null;
+rows.forEach(r=>{["ds","img","shop","priceUrl"].forEach(f=>{r[f]=safeUrl(r[f])});r.key=String(r.key||"").replace(/[^A-Za-z0-9_.-]/g,"")||null;});
 rows.forEach(r=>{r.type=r.type||"Spot";r.lamp=r.lamp||"LED integriert";r.key=r.key||(r.brand.replace(/\W/g,"")+"_"+r.art);r.lmw=(r.lm&&r.w&&!r.lmText)?Math.round(r.lm/r.w):null;r.cctSort=r.ccts.length?Math.min(...r.ccts):null});
 
 const byKey=Object.fromEntries(rows.map(r=>[r.key,r]));
@@ -74,7 +77,7 @@ document.getElementById("reset").onclick=()=>{["type","lamp","brand","cct","angl
   Object.values(RANGES).forEach(r=>r.reset());document.getElementById("minCri").value="0";document.getElementById("onlyPicked").value="all";render()};
 
 const fmt=n=>n==null?"–":n.toLocaleString("de-DE");
-const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const roomById=id=>rooms.find(r=>r.id===id);
 const short=r=>`${r.model} · ${r.cctLabel.split(" ")[0]} K · ${r.angleLabel} · ${r.color}`;
 function status(t){document.getElementById("pickStatus").textContent=t}
@@ -189,8 +192,8 @@ function beam(r){
 const priceSrc=r=>r.priceSrc?`<a class="psrc" href="${esc(r.priceUrl||r.ds)}" target="_blank" rel="noopener" title="Preis von ${esc(r.priceSrc)}, Stand ${esc(r.priceDate||"?")}">${esc(r.priceSrc)}${r.priceDate?", "+esc(r.priceDate.split("-").reverse().join("/")):""}</a>`:"";
 const isImg=u=>/\.(jpe?g|png|webp)(\?|$)/i.test(u||"");
 // Direkte Produktbilder öffnen als Vorschaufenster auf der Seite, Bildersuchen weiterhin in neuem Tab
-const linksHtml=r=>`<span class="links"><a href="${r.ds}" target="_blank" rel="noopener">${r.dsLabel||"Datenblatt"}</a>${r.img&&r.img!==r.ds?(isImg(r.img)?`<button type="button" class="imglink" data-img="${esc(r.key)}" aria-haspopup="dialog">${r.imgLabel||"Bild"}</button>`:`<a href="${r.img}" target="_blank" rel="noopener">${r.imgLabel||"Bilder"}</a>`):""}${r.shop?`<a href="${r.shop}" target="_blank" rel="noopener">Shop</a>`:""}</span>`;
-const usedText=(u)=>u.map(a=>{const rm=roomById(a.raum);return `${a.stueck}× ${esc(rm?rm.name:"?")}${a.gruppe?", "+esc(a.gruppe):""}`}).join("; ");
+const linksHtml=r=>`<span class="links">${r.ds?`<a href="${esc(r.ds)}" target="_blank" rel="noopener">${esc(r.dsLabel||"Datenblatt")}</a>`:""}${r.img&&r.img!==r.ds?(isImg(r.img)?`<button type="button" class="imglink" data-img="${esc(r.key)}" aria-haspopup="dialog">${esc(r.imgLabel||"Bild")}</button>`:`<a href="${esc(r.img)}" target="_blank" rel="noopener">${esc(r.imgLabel||"Bilder")}</a>`):""}${r.shop?`<a href="${esc(r.shop)}" target="_blank" rel="noopener">Shop</a>`:""}</span>`;
+const usedText=(u)=>u.map(a=>{const rm=roomById(a.raum);return `${esc(a.stueck)}× ${esc(rm?rm.name:"?")}${a.gruppe?", "+esc(a.gruppe):""}`}).join("; ");
 
 function cardHtml(r,u,an,dis){
   const specs=CARD_SPECS.map(k=>{const at=ATTR[k];const val=at.show?at.show(r):esc(at.v(r));const d=an[k].vary;
@@ -204,13 +207,13 @@ function cardHtml(r,u,an,dis){
       <dl class="specs">${specs}</dl>
       ${u.length?`<p class="used">Gemerkt: ${usedText(u)}</p>`:""}
       <div class="cfoot"><div class="price">${r.price!=null?`<small>ab</small> ${fmt(r.price)} €`:`<small>Preis unbekannt</small>`}${priceSrc(r)}</div>
-        <button class="pick" type="button" data-pick="${r.key}"${dis}>${u.length?"Nochmal merken":"Merken"}</button></div>
+        <button class="pick" type="button" data-pick="${esc(r.key)}"${dis}>${u.length?"Nochmal merken":"Merken"}</button></div>
       ${linksHtml(r)}
     </div></article>`;
 }
 function tableRowHtml(r,u,dis){
   return `<tr class="${u.length?"picked":""}">
-    <td><button class="pick sm" type="button" data-pick="${r.key}"${dis}>Merken</button>${u.length?`<span class="used">${usedText(u)}</span>`:""}</td>
+    <td><button class="pick sm" type="button" data-pick="${esc(r.key)}"${dis}>Merken</button>${u.length?`<span class="used">${usedText(u)}</span>`:""}</td>
     <td class="namecell"><span class="brand">${esc(r.brand)}</span><span class="model"${r.modelOrig?` title="Im Shop: ${esc(r.modelOrig)}"`:""}>${esc(r.model)}</span>${r.hinweis?`<span class="hint">${esc(r.hinweis)}</span>`:""}</td><td>${r.type}<span class="brand">${esc(r.lamp)}</span></td>
     <td><span class="cct">${r.ccts.map(c=>`<span class="dot" style="background:${CCT_COLOR[c]}"></span>`).join("")}${esc(r.cctLabel)}</span></td>
     <td>${esc(r.angleLabel)}</td><td>${esc(r.color)}</td>
@@ -336,7 +339,7 @@ function buildPrint(){
   <h2>Nach Raum</h2>`;
   rooms.forEach(rm=>{const its=items.filter(a=>a.raum===rm.id);if(!its.length)return;
     const groups=[...new Set(its.map(a=>a.gruppe||""))];
-    h+=`<section class="proom"><h3>${esc(rm.name)}</h3>`+groups.map(g=>`<h4>${g?esc(g):"ohne Verwendung"}</h4><ul>${its.filter(a=>(a.gruppe||"")===g).map(a=>{const r=byKey[a.leuchte];return `<li><b>${a.stueck}×</b> ${esc(r.brand)} ${esc(r.model)}, ${esc(r.cctLabel)}, ${esc(r.angleLabel)}, ${esc(r.color)} <span>Art.-Nr. ${esc(r.art)}</span></li>`}).join("")}</ul>`).join("")+`</section>`});
+    h+=`<section class="proom"><h3>${esc(rm.name)}</h3>`+groups.map(g=>`<h4>${g?esc(g):"ohne Verwendung"}</h4><ul>${its.filter(a=>(a.gruppe||"")===g).map(a=>{const r=byKey[a.leuchte];return `<li><b>${esc(a.stueck)}×</b> ${esc(r.brand)} ${esc(r.model)}, ${esc(r.cctLabel)}, ${esc(r.angleLabel)}, ${esc(r.color)} <span>Art.-Nr. ${esc(r.art)}</span></li>`}).join("")}</ul>`).join("")+`</section>`});
   if(!items.length)h=h.slice(0,h.indexOf("<h2>Bestellliste</h2>"));
   if(rplans.length){
     const sum=new Map();rplans.filter(p=>p.ev.ok).forEach(p=>p.ev.bill.items.forEach(i=>{const e=sum.get(i.eutrac)||{...i,qty:0};e.qty+=i.qty;sum.set(i.eutrac,e)}));
@@ -360,16 +363,16 @@ function renderRooms(){
     const items=assigns.filter(a=>a.raum===rm.id&&byKey[a.leuchte]);
     const groups=[...(rm.gruppen||[])]; items.forEach(a=>{if(a.gruppe&&!groups.includes(a.gruppe))groups.push(a.gruppe)});
     const ungrouped=items.filter(a=>!a.gruppe);
-    const itemHtml=a=>{const r=byKey[a.leuchte];return `<div class="item"><input type="number" min="1" max="50" value="${a.stueck}" data-qty="${a.id}" aria-label="Stückzahl ${esc(r.model)}"${dis}><span>${esc(short(r))}</span><span class="p">${r.price!=null?fmt(r.price*a.stueck)+" €":"–"}</span><button class="btn x" type="button" data-del-assign="${a.id}" aria-label="Entfernen"${dis}>×</button></div>`};
-    const gHtml=g=>{const its=items.filter(a=>a.gruppe===g);return `<div class="group"><h4><span>${esc(g)}</span>${its.length?"":`<button class="btn x" type="button" data-del-group="${rm.id}" data-g="${esc(g)}" aria-label="Verwendung ${esc(g)} entfernen"${dis}>×</button>`}</h4>${its.map(itemHtml).join("")||`<div class="empty">noch leer</div>`}</div>`};
+    const itemHtml=a=>{const r=byKey[a.leuchte];return `<div class="item"><input type="number" min="1" max="50" value="${esc(a.stueck)}" data-qty="${esc(a.id)}" aria-label="Stückzahl ${esc(r.model)}"${dis}><span>${esc(short(r))}</span><span class="p">${r.price!=null?fmt(r.price*a.stueck)+" €":"–"}</span><button class="btn x" type="button" data-del-assign="${esc(a.id)}" aria-label="Entfernen"${dis}>×</button></div>`};
+    const gHtml=g=>{const its=items.filter(a=>a.gruppe===g);return `<div class="group"><h4><span>${esc(g)}</span>${its.length?"":`<button class="btn x" type="button" data-del-group="${esc(rm.id)}" data-g="${esc(g)}" aria-label="Verwendung ${esc(g)} entfernen"${dis}>×</button>`}</h4>${its.map(itemHtml).join("")||`<div class="empty">noch leer</div>`}</div>`};
     const n=items.reduce((s,a)=>s+a.stueck,0), w=items.reduce((s,a)=>s+byKey[a.leuchte].w*a.stueck,0), lm=items.reduce((s,a)=>s+(byKey[a.leuchte].lm||0)*a.stueck,0);
     const eur=items.reduce((s,a)=>s+(byKey[a.leuchte].price||0)*a.stueck,0), noPrice=items.filter(a=>byKey[a.leuchte].price==null).reduce((s,a)=>s+a.stueck,0);
-    const nameHtml=editing===rm.id?`<input type="text" id="ren-${rm.id}" value="${esc(rm.name)}" aria-label="Raumname">`:`<h3 class="roomname">${esc(rm.name)}</h3>`;
-    const del=confirmDel===rm.id?`<button class="btn danger" type="button" data-del-room="${rm.id}"${dis}>Wirklich löschen?</button>`:`<button class="btn link" type="button" data-ask-del="${rm.id}"${dis}>Löschen</button>`;
-    return `<div class="room"><div class="roomhead">${nameHtml}<span class="tools"><button class="btn link" type="button" data-rename="${rm.id}"${dis}>${editing===rm.id?"Fertig":"Umbenennen"}</button>${del}</span></div>
+    const nameHtml=editing===rm.id?`<input type="text" id="ren-${esc(rm.id)}" value="${esc(rm.name)}" aria-label="Raumname">`:`<h3 class="roomname">${esc(rm.name)}</h3>`;
+    const del=confirmDel===rm.id?`<button class="btn danger" type="button" data-del-room="${esc(rm.id)}"${dis}>Wirklich löschen?</button>`:`<button class="btn link" type="button" data-ask-del="${esc(rm.id)}"${dis}>Löschen</button>`;
+    return `<div class="room"><div class="roomhead">${nameHtml}<span class="tools"><button class="btn link" type="button" data-rename="${esc(rm.id)}"${dis}>${editing===rm.id?"Fertig":"Umbenennen"}</button>${del}</span></div>
       ${groups.map(gHtml).join("")}${ungrouped.length?`<div class="group"><h4><span>ohne Verwendung</span></h4>${ungrouped.map(itemHtml).join("")}</div>`:""}
       ${railsHtml(rm.id)}
-      <div class="tools"><input type="text" placeholder="Neue Verwendung" id="ng-${rm.id}" aria-label="Neue Verwendung für ${esc(rm.name)}"${dis}><button class="btn" type="button" data-add-group="${rm.id}"${dis}>+ Verwendung</button></div>
+      <div class="tools"><input type="text" placeholder="Neue Verwendung" id="ng-${esc(rm.id)}" aria-label="Neue Verwendung für ${esc(rm.name)}"${dis}><button class="btn" type="button" data-add-group="${esc(rm.id)}"${dis}>+ Verwendung</button></div>
       <div class="sum">${n?`<b>ab ca. ${eur.toLocaleString("de-DE")} €</b><span>${n} Stk. · ${w.toLocaleString("de-DE",{maximumFractionDigits:1})} W · ${lm.toLocaleString("de-DE")} lm${noPrice?` · ${noPrice} Stk. ohne Preis`:""}</span>`:`<span>Noch keine Leuchten gemerkt.</span>`}</div></div>`}).join("");
   if(editing){const i=document.getElementById("ren-"+editing);if(i){i.focus();i.select()}}
 }
@@ -443,7 +446,7 @@ function openPick(b){
   pickKey=b.dataset.pick; const r=byKey[pickKey];
   document.getElementById("pickSub").textContent=r.brand+" · "+short(r)+" · Art.-Nr. "+r.art;
   const pr=document.getElementById("pRoom");
-  pr.innerHTML=rooms.map(rm=>`<option value="${rm.id}">${esc(rm.name)}</option>`).join("")+`<option value="${NEW_ROOM}">+ Neuer Raum …</option>`;
+  pr.innerHTML=rooms.map(rm=>`<option value="${esc(rm.id)}">${esc(rm.name)}</option>`).join("")+`<option value="${NEW_ROOM}">+ Neuer Raum …</option>`;
   pr.value=rooms.length?(roomById(lastRoom)?lastRoom:rooms[0].id):NEW_ROOM;
   document.getElementById("pNewRoom").value="";
   fillGroups(); document.getElementById("pNewGroup").value=""; document.getElementById("pQty").value="1"; document.getElementById("pickErr").hidden=true;
@@ -479,7 +482,7 @@ render(); renderRooms();
 // ---------- Merkliste: lokal oder gemeinsam ----------
 const S=window.MerklisteStore;
 let unsub=[], notice="";
-const KNOWN=["too_large","conflict","forbidden","not_found","network","not_configured","offline"];
+const KNOWN=["too_large","conflict","forbidden","not_found","network","not_configured","offline","rate_limited","storage_full"];
 function readyText(){
   if(db.mode==="shared")return "Gemeinsame Liste"+(db.hasPassword?" (mit Passwort)":"")+": Alle mit dem Link sehen Änderungen sofort. Die Daten werden im Browser verschlüsselt gespeichert.";
   return db.persistent?"Gespeichert nur in diesem Browser, bis er geschlossen wird. Zum Aufheben oder Teilen: „Teilen …“ oben rechts."
