@@ -166,7 +166,7 @@
     const {data,error}=await sb().rpc(fn,args);
     if(error){ const m=String(error.message||"");
       if(error.code==="42501")throw err("forbidden","Keine Schreibberechtigung für diese Liste.");
-      if(/rate_limited/.test(m))throw err("rate_limited","Gerade wurden sehr viele gemeinsame Listen angelegt. Bitte in einer Stunde erneut versuchen.");
+      if(/rate_limited/.test(m))throw err("rate_limited","Von deinem Internetanschluss wurden gerade viele gemeinsame Listen angelegt. Bitte später erneut versuchen.");
       if(/storage_full/.test(m))throw err("storage_full","Der Speicher für gemeinsame Listen ist im Moment voll. Bitte später erneut versuchen.");
       if(/too_large/.test(m))throw err("too_large","Die Liste ist zu groß für eine gemeinsame Liste. Bitte nicht mehr benötigte Einträge entfernen.");
       throw err("network","Verbindung zum Speicherdienst fehlgeschlagen.") }

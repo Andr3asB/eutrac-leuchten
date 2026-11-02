@@ -3,7 +3,7 @@
 // Leuchtendaten kommen aus leuchten.json, die Merkliste aus einem Sitzungs-Cookie (merkliste-store.js).
 (async()=>{
 let rows;
-try{ rows=await (await fetch("leuchten.json?v=20261102e",{cache:"no-cache"})).json() }
+try{ rows=await (await fetch("leuchten.json?v=20261102f",{cache:"no-cache"})).json() }
 catch(e){ document.getElementById("count").textContent="Leuchtendaten (leuchten.json) konnten nicht geladen werden."; return }
 // Links aus den Daten nur mit https:// zulassen (Schutz vor javascript:-Links in Daten-Beiträgen)
 const safeUrl=u=>typeof u==="string"&&/^https:\/\/[^\s"'<>]+$/i.test(u)?u:null;

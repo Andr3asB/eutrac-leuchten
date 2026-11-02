@@ -30,7 +30,7 @@
 
   // ---------- Daten ----------
   async function loadLamps(){
-    try{const rows=await (await fetch("leuchten.json?v=20261102e",{cache:"no-cache"})).json();
+    try{const rows=await (await fetch("leuchten.json?v=20261102f",{cache:"no-cache"})).json();
       rows.forEach(r=>{r.key=r.key||(r.brand.replace(/\W/g,"")+"_"+r.art);byKey[r.key]=r})}catch(e){status("Leuchtendaten konnten nicht geladen werden.","bad")}
   }
   const status=(t,cls="")=>{const el=$("blStatus");el.textContent=t;el.className="fine"+(cls?" "+cls:"")};

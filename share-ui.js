@@ -24,7 +24,7 @@
       <div class="f"><label for="sPw2">Passwort wiederholen</label><input type="password" id="sPw2" autocomplete="new-password"></div>
     </div>
     <p class="fine">Mit Passwort braucht man Link <b>und</b> Passwort. Das Passwort lässt sich nicht wiederherstellen.</p>
-    <p class="fine"><b>Tipp:</b> Ohne Passwort kann jeder, der den Link sieht (z. B. in einem Chatverlauf), die Liste ändern oder löschen. Für Handwerker oder größere Gruppen lieber ein Passwort setzen. Gemeinsame Listen, die 18 Monate weder geöffnet noch geändert wurden, werden automatisch gelöscht.</p>
+    <p class="fine"><b>Tipp:</b> Ohne Passwort kann jeder, der den Link sieht (z. B. in einem Chatverlauf), die Liste ändern oder löschen. Für Handwerker oder größere Gruppen lieber ein Passwort setzen. Gemeinsame Listen werden automatisch gelöscht, wenn sie nach dem Anlegen nie geändert und nie wieder geöffnet wurden (nach 30 Tagen) oder 18 Monate lang ungenutzt sind.</p>
     <p id="shareErr" class="err" hidden></p>
     <div class="actions"><button class="btn" type="button" id="shareCancel">Abbrechen</button><button class="btn primary" type="submit" id="shareSave">Link erstellen</button></div>
   </form>
