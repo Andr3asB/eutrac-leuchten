@@ -1,0 +1,29 @@
+# Hält das kostenlose Supabase-Projekt aktiv. Supabase pausiert Free-Projekte nach 7 Tagen ohne Nutzung;
+# dann funktionieren gemeinsame Merklisten nicht mehr, bis man das Projekt im Dashboard wieder startet.
+# Der Abruf ruft nur merkliste_sender_check() auf: liest keine Listen, schreibt nichts.
+name: Supabase aktiv halten
+
+on:
+  schedule:
+    - cron: "17 6 * * 1,4"   # Montag und Donnerstag, 06:17 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Datenbank abfragen
+        env:
+          # Öffentliche Werte, identisch mit config.js
+          SUPABASE_URL: https://yvpnuitixodicbgfteei.supabase.co
+          SUPABASE_KEY: sb_publishable_j6oRu9iRtmiLAIni0XjfXg_SnTSR78L
+        run: |
+          curl -sS --fail-with-body --retry 3 --retry-delay 10 -X POST \
+            "$SUPABASE_URL/rest/v1/rpc/merkliste_sender_check" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}'
+          echo

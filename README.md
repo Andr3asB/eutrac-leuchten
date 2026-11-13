@@ -44,6 +44,7 @@ Die Merkliste ist nur im eigenen Browser sichtbar. Damit die Cookies klein bleib
 2. Im Dashboard unter **SQL Editor** den Inhalt von `supabase/schema.sql` ausführen.
 3. Unter **Project Settings → API** die *Project URL* und den *anon public*-Schlüssel in `config.js` eintragen.
 4. Unter **Realtime → Settings** muss der öffentliche Zugriff auf Kanäle erlaubt sein (Standard); sonst aktualisiert sich die Liste nur beim Zurückkehren zum Tab bzw. alle 20 Sekunden.
+5. Supabase pausiert kostenlose Projekte nach 7 Tagen ohne Nutzung. Der GitHub-Workflow `.github/workflows/supabase-keepalive.yml` fragt die Datenbank deshalb zweimal pro Woche kurz ab (nur `merkliste_sender_check`, keine Listendaten). GitHub stoppt geplante Workflows nach 60 Tagen ohne Commit im Repository; dann unter **Actions** wieder aktivieren.
 
 ## Lokal ansehen
 
