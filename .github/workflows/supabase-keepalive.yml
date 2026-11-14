@@ -1,11 +1,15 @@
-# Hält das kostenlose Supabase-Projekt aktiv. Supabase pausiert Free-Projekte nach 7 Tagen ohne Nutzung;
-# dann funktionieren gemeinsame Merklisten nicht mehr, bis man das Projekt im Dashboard wieder startet.
-# Der Abruf ruft nur merkliste_sender_check() auf: liest keine Listen, schreibt nichts.
+# Hält das kostenlose Supabase-Projekt aktiv. Supabase pausiert Free-Projekte nach 7 Tagen ohne
+# „ausreichende“ Nutzung (genaue Kriterien nennt Supabase nicht); dann funktionieren gemeinsame
+# Merklisten nicht mehr, bis man das Projekt im Dashboard wieder startet.
+# Ein Abruf zweimal pro Woche hat nicht gereicht, deshalb: zweimal täglich, je Lauf mehrere echte
+# Tabellenabfragen. Liest keine Listendaten (Abruf einer zufälligen, nicht existierenden ID) und legt nichts an.
+# Schlägt ein Lauf fehl, schickt GitHub eine Mail.
 name: Supabase aktiv halten
 
 on:
   schedule:
-    - cron: "17 6 * * 1,4"   # Montag und Donnerstag, 06:17 UTC
+    - cron: "17 5 * * *"    # täglich 05:17 UTC
+    - cron: "43 17 * * *"   # täglich 17:43 UTC
   workflow_dispatch:
 
 permissions: {}
@@ -14,16 +18,22 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      # Öffentliche Werte, identisch mit config.js
+      SUPABASE_URL: https://yvpnuitixodicbgfteei.supabase.co
+      SUPABASE_KEY: sb_publishable_j6oRu9iRtmiLAIni0XjfXg_SnTSR78L
     steps:
       - name: Datenbank abfragen
-        env:
-          # Öffentliche Werte, identisch mit config.js
-          SUPABASE_URL: https://yvpnuitixodicbgfteei.supabase.co
-          SUPABASE_KEY: sb_publishable_j6oRu9iRtmiLAIni0XjfXg_SnTSR78L
         run: |
-          curl -sS --fail-with-body --retry 3 --retry-delay 10 -X POST \
-            "$SUPABASE_URL/rest/v1/rpc/merkliste_sender_check" \
-            -H "apikey: $SUPABASE_KEY" \
-            -H "Content-Type: application/json" \
-            -d '{}'
-          echo
+          set -euo pipefail
+          call() {
+            curl -sS --fail-with-body --retry 3 --retry-delay 10 --retry-all-errors -X POST \
+              "$SUPABASE_URL/rest/v1/rpc/$1" \
+              -H "apikey: $SUPABASE_KEY" -H "Content-Type: application/json" -d "$2"
+            echo
+          }
+          for i in 1 2 3; do
+            call merkliste_sender_check '{}'
+            call merkliste_get "{\"p_id\":\"$(cat /proc/sys/kernel/random/uuid)\"}"
+            sleep 5
+          done
