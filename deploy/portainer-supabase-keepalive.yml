@@ -1,0 +1,66 @@
+# Portainer-Stack: hält das kostenlose Supabase-Projekt der gemeinsamen Merklisten aktiv.
+# Zweite, unabhängige Quelle neben .github/workflows/supabase-keepalive.yml.
+#
+# Einrichtung in Portainer: Stacks → Add stack → Name „supabase-keepalive“ →
+#   entweder „Web editor“ und diese Datei einfügen,
+#   oder „Repository“: URL https://github.com/Andr3asB/eutrac-leuchten, Reference refs/heads/main,
+#   Compose path deploy/portainer-supabase-keepalive.yml
+# → Deploy the stack. Kontrolle: Containers → supabase-keepalive → Logs (eine Zeile „ok“ je Durchlauf),
+#   Status „healthy“ nach dem ersten erfolgreichen Durchlauf.
+#
+# Fragt alle 6 Stunden dreimal zwei Datenbankfunktionen ab. Liest keine Listendaten
+# (merkliste_get mit zufälliger, nicht vorhandener ID) und legt nichts an.
+# Schlüssel und URL sind öffentlich (stehen auch in config.js), daher keine Secrets nötig.
+
+services:
+  supabase-keepalive:
+    image: curlimages/curl:8.11.1
+    container_name: supabase-keepalive
+    restart: unless-stopped
+    environment:
+      SUPABASE_URL: https://yvpnuitixodicbgfteei.supabase.co
+      SUPABASE_KEY: sb_publishable_j6oRu9iRtmiLAIni0XjfXg_SnTSR78L
+      INTERVAL_SECONDS: "21600"   # 6 Stunden
+      TZ: Europe/Berlin
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -u
+        call() {
+          curl -sS --fail-with-body --max-time 30 --retry 3 --retry-delay 10 --retry-all-errors \
+            -X POST "$$SUPABASE_URL/rest/v1/rpc/$$1" \
+            -H "apikey: $$SUPABASE_KEY" -H "Content-Type: application/json" -d "$$2" >/dev/null
+        }
+        while true; do
+          ok=1
+          for i in 1 2 3; do
+            call merkliste_sender_check '{}' || ok=0
+            call merkliste_get "{\"p_id\":\"$$(cat /proc/sys/kernel/random/uuid)\"}" || ok=0
+            sleep 5
+          done
+          if [ "$$ok" = 1 ]; then
+            date +%s > /tmp/last_ok
+            echo "$$(date '+%F %T') ok"
+          else
+            echo "$$(date '+%F %T') FEHLER: Supabase antwortet nicht – Projekt pausiert? Im Supabase-Dashboard prüfen."
+          fi
+          sleep "$$INTERVAL_SECONDS"
+        done
+    healthcheck:
+      # gesund, wenn der letzte erfolgreiche Durchlauf weniger als 13 Stunden her ist
+      test: ["CMD-SHELL", "test $$(( $$(date +%s) - $$(cat /tmp/last_ok 2>/dev/null || echo 0) )) -lt 46800"]
+      interval: 5m
+      timeout: 10s
+      start_period: 2m
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 32m
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "2"
